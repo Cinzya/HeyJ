@@ -145,7 +145,7 @@ const ConversationsScreen = ({
       );
       OneSignal.Notifications.removeEventListener("click", onClick);
     };
-  });
+  }, []);
 
   const renderConversation = (conversation: Conversation) => {
     const uid: string = conversation.uids.filter(
