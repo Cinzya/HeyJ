@@ -1,0 +1,78 @@
+{
+  "expo": {
+    "name": "HeyJ",
+    "slug": "HeyJ",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "scheme": "myapp",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "audio"
+        ],
+        "NSCameraUsageDescription": "Allow this app to access camera.",
+        "NSMicrophoneUsageDescription": "Allow this app to access your microphone"
+      },
+      "runtimeVersion": {
+        "policy": "sdkVersion"
+      },
+      "bundleIdentifier": "com.ekarni.heyj",
+      "splash": {
+        "backgroundColor": "#FFF",
+        "image": "./assets/splash.png"
+      },
+      "entitlements": {
+        "com.apple.developer.applesignin": ["Default"]
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ],
+      "package": "com.ekarni.heyj",
+      "runtimeVersion": "1.0.0",
+      "splash": {
+        "backgroundColor": "#FFF",
+        "image": "./assets/splash.png"
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-barcode-scanner",
+        {
+          "cameraPermission": "Allow this app to access camera."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "425b4502-a4b9-4fe6-a2ea-ca4129daa0dc"
+      }
+    }
+  }
+}
