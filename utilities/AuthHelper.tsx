@@ -10,7 +10,7 @@ const createSessionFromUrl = async (url: string) => {
   if (errorCode) throw new Error(errorCode);
   const { access_token, refresh_token } = params;
 
-  if (!access_token) return;
+  if (!access_token || !refresh_token) return;
 
   const { data, error } = await supabase.auth.setSession({
     access_token,
@@ -20,7 +20,7 @@ const createSessionFromUrl = async (url: string) => {
   return data.session;
 };
 
-const redirectUrl = makeRedirectUri({ scheme: "myapp" });
+const redirectUrl = makeRedirectUri({ scheme: "heyj" });
 
 export const signInWithGoogle = async () => {
   const { data, error } = await supabase.auth.signInWithOAuth({
