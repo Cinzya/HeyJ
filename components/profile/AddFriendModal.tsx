@@ -13,6 +13,7 @@ import {
 // @ts-expect-error
 import { MaterialCommunityIcons, Ionicons } from "react-native-vector-icons";
 import { useProfile } from "../../utilities/ProfileProvider";
+import { useFriends } from "../../utilities/FriendsProvider";
 import * as Clipboard from 'expo-clipboard';
 
 interface AddFriendModalProps {
@@ -21,7 +22,8 @@ interface AddFriendModalProps {
 }
 
 const AddFriendModal = ({ visible, onClose }: AddFriendModalProps) => {
-  const { profile, sendFriendRequest } = useProfile();
+  const { profile } = useProfile();
+  const { sendFriendRequest } = useFriends();
   const [friendCode, setFriendCode] = useState("");
 
   const styles = Styles();

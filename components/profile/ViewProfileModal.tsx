@@ -22,6 +22,8 @@ import {
 import { openSettings } from "expo-linking";
 import { supabase } from "../../utilities/Supabase";
 import { useProfile } from "../../utilities/ProfileProvider";
+import { useConversations } from "../../utilities/ConversationsProvider";
+import { useFriends } from "../../utilities/FriendsProvider";
 import {
   ActionSheetProvider,
 } from "@expo/react-native-action-sheet";
@@ -37,11 +39,9 @@ const ViewProfileModal = () => {
     saveProfile,
     setViewProfile,
     getProfile,
-    conversations,
-    profiles,
-    friendRequests,
-    checkFriendshipStatus,
   } = useProfile();
+  const { conversations, profiles } = useConversations();
+  const { friendRequests, checkFriendshipStatus } = useFriends();
 
   const styles = Styles();
 

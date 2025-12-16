@@ -47,6 +47,21 @@ export const getOtherUserUid = (
 };
 
 /**
+ * Get unread messages from the other user in a conversation
+ * @param conversation - The conversation to search
+ * @param otherUserUid - The other user's UID
+ * @returns Array of unread messages from the other user, sorted by timestamp (newest first)
+ */
+export const getUnreadMessagesFromOtherUser = (
+  conversation: Conversation,
+  otherUserUid: string
+): Message[] => {
+  return conversation.messages
+    .filter((m) => m.uid === otherUserUid && !m.isRead)
+    .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+};
+
+/**
  * Calculate status indicator for a conversation based on message recency
  * @param conversation - The conversation to analyze
  * @param currentUserId - The current user's ID

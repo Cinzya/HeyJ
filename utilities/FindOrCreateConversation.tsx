@@ -1,6 +1,7 @@
 import { supabase } from "./Supabase";
 import Conversation from "../objects/Conversation";
 import UUID from "react-native-uuid";
+import { handleError, handleApiError } from "./errorHandler";
 
 /**
  * Finds an existing conversation between two users, or creates a new one if it doesn't exist.
@@ -25,7 +26,7 @@ export const findOrCreateConversation = async (
     // #endregion
 
     if (fetchError) {
-        console.error("Error fetching conversations:", fetchError);
+        handleError(fetchError, "FindOrCreateConversation - fetch");
         // Continue to create new conversation if fetch fails
     } else if (existingConversations && existingConversations.length > 0) {
         // Check each conversation to see if it contains both UIDs
@@ -72,7 +73,8 @@ export const findOrCreateConversation = async (
         // #region agent log
         fetch('http://127.0.0.1:7242/ingest/f5e603aa-4ab7-41d0-b1fe-b8ca210c432d', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'FindOrCreateConversation.tsx:56', message: 'error creating conversation', data: { conversationId, error: insertError.message }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'A' }) }).catch(() => { });
         // #endregion
-        throw new Error(`Failed to create conversation: ${insertError.message}`);
+        const errorMessage = handleApiError(insertError, "Failed to create conversation");
+        throw new Error(errorMessage);
     }
 
     // #region agent log

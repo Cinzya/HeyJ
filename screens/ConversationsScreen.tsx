@@ -9,6 +9,8 @@ import { styles } from "../styles/ConversationsScreen.styles";
 // @ts-expect-error
 import { Entypo, FontAwesome } from "react-native-vector-icons";
 import { useProfile } from "../utilities/ProfileProvider";
+import { useConversations } from "../utilities/ConversationsProvider";
+import { useFriends } from "../utilities/FriendsProvider";
 import Conversation from "../objects/Conversation";
 import FriendRequest from "../objects/FriendRequest";
 import Profile from "../objects/Profile";
@@ -17,6 +19,8 @@ import { isBefore } from "date-fns";
 import { formatDate } from "../utilities/dateUtils";
 import { lastMessageTimestamp, lastMessageFromOtherUser, getStatusIndicator, getOtherUserUid } from "../utilities/conversationUtils";
 import { useNavigation } from "@react-navigation/native";
+import { StackNavigationProp } from "@react-navigation/stack";
+import { RootStackParamList } from "../types/navigation";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import { useAudioSettings } from "../utilities/AudioSettingsProvider";
 import { useIncomingRequesterProfiles } from "../hooks/useProfileData";
@@ -26,17 +30,16 @@ import { useFriendRequestActionsStore } from "../stores/useFriendRequestActionsS
 import { updateLastRead } from "../utilities/UpdateConversation";
 
 const ConversationsScreen = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
+  const { profile } = useProfile();
+  const { conversations, profiles } = useConversations();
   const {
-    profile,
-    conversations,
-    profiles,
     friendRequests,
     getFriendRequests,
     getFriends,
     acceptFriendRequest,
     rejectFriendRequest,
-  } = useProfile();
+  } = useFriends();
   const { autoplay } = useAudioSettings();
 
   // Zustand stores
@@ -192,7 +195,7 @@ const ConversationsScreen = () => {
           }
         }}
         onLongPress={() =>
-          (navigation as any).navigate("Conversation", {
+          navigation.navigate("Conversation", {
             conversationId: conversation.conversationId,
           })
         }
@@ -218,7 +221,7 @@ const ConversationsScreen = () => {
         <TouchableOpacity
           style={styles.button}
           onPress={() =>
-            (navigation as any).navigate("Conversation", {
+            navigation.navigate("Conversation", {
               conversationId: conversation.conversationId,
             })
           }

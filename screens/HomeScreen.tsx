@@ -5,6 +5,8 @@ import {
 } from "react-native";
 import { useEffect, useState } from "react";
 import { useProfile } from "../utilities/ProfileProvider";
+import { useConversations } from "../utilities/ConversationsProvider";
+import { useFriends } from "../utilities/FriendsProvider";
 import ConversationsScreen from "./ConversationsScreen";
 import { sendMessage } from "../utilities/SendMessage";
 import { useNavigation } from "@react-navigation/native";
@@ -15,8 +17,50 @@ import { useConversationListStore } from "../stores/useConversationListStore";
 import { createStyles as createHomeScreenStyles } from "../styles/HomeScreen.styles";
 
 const HomeScreen = () => {
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/f5e603aa-4ab7-41d0-b1fe-b8ca210c432d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'HomeScreen.tsx:19',message:'HomeScreen rendering',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+  // #endregion
   const navigation = useNavigation();
-  const { profile, conversations, profiles, friends, getFriends, getProfile } = useProfile();
+  let profile, getProfile, conversations, profiles, friends, getFriends;
+  try {
+    const profileContext = useProfile();
+    profile = profileContext.profile;
+    getProfile = profileContext.getProfile;
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/f5e603aa-4ab7-41d0-b1fe-b8ca210c432d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'HomeScreen.tsx:26',message:'HomeScreen useProfile success',data:{hasProfile:!!profile},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
+  } catch (error) {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/f5e603aa-4ab7-41d0-b1fe-b8ca210c432d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'HomeScreen.tsx:29',message:'HomeScreen useProfile error',data:{errorMessage:error instanceof Error?error.message:String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
+    throw error;
+  }
+  try {
+    const conversationsContext = useConversations();
+    conversations = conversationsContext.conversations;
+    profiles = conversationsContext.profiles;
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/f5e603aa-4ab7-41d0-b1fe-b8ca210c432d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'HomeScreen.tsx:35',message:'HomeScreen useConversations success',data:{conversationsCount:conversations?.length||0},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
+  } catch (error) {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/f5e603aa-4ab7-41d0-b1fe-b8ca210c432d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'HomeScreen.tsx:38',message:'HomeScreen useConversations error',data:{errorMessage:error instanceof Error?error.message:String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
+    throw error;
+  }
+  try {
+    const friendsContext = useFriends();
+    friends = friendsContext.friends;
+    getFriends = friendsContext.getFriends;
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/f5e603aa-4ab7-41d0-b1fe-b8ca210c432d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'HomeScreen.tsx:44',message:'HomeScreen useFriends success',data:{friendsCount:friends?.length||0},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
+  } catch (error) {
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/f5e603aa-4ab7-41d0-b1fe-b8ca210c432d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'HomeScreen.tsx:47',message:'HomeScreen useFriends error',data:{errorMessage:error instanceof Error?error.message:String(error)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
+    throw error;
+  }
 
   const { selectedConversation, setSelectedConversation } = useConversationListStore();
   const [selectedRecipientName, setSelectedRecipientName] = useState<string>("");

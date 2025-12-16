@@ -12,8 +12,9 @@ import {
 import OAuthButton from "../components/auth/OAuthButton";
 import { signInWithEmail } from "../utilities/AuthHelper";
 import { styles } from "../styles/LoginScreen.styles";
+import { LoginScreenProps } from "../types/navigation";
 
-const LoginScreen = ({ navigation }: { navigation?: any }) => {
+const LoginScreen = ({ navigation }: LoginScreenProps) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);

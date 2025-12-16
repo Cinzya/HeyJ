@@ -9,22 +9,24 @@ import {
 } from "react-native";
 import { styles } from "../styles/FriendRequestsScreen.styles";
 import { useProfile } from "../utilities/ProfileProvider";
+import { useFriends } from "../utilities/FriendsProvider";
 import FriendRequest from "../objects/FriendRequest";
 import Profile from "../objects/Profile";
 // @ts-expect-error
 import { Ionicons } from "react-native-vector-icons";
 import { useRequesterProfiles } from "../hooks/useProfileData";
+import { FriendRequestsScreenProps } from "../types/navigation";
 
-const FriendRequestsScreen = ({ navigation }: { navigation: any }) => {
+const FriendRequestsScreen = ({ navigation }: FriendRequestsScreenProps) => {
+  const { profile } = useProfile();
   const {
-    profile,
     friendRequests,
     getFriendRequests,
     acceptFriendRequest,
     rejectFriendRequest,
     blockUser,
     cancelFriendRequest,
-  } = useProfile();
+  } = useFriends();
 
   const requesterProfiles = useRequesterProfiles(profile, friendRequests);
 

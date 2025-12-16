@@ -1,7 +1,9 @@
 import { create } from "zustand";
-import { documentDirectory, createDownloadResumable } from "expo-file-system/legacy";
 import Conversation from "../objects/Conversation";
 import { updateLastRead } from "../utilities/UpdateConversation";
+import { getUnreadMessagesFromOtherUser } from "../utilities/conversationUtils";
+import { playAudioFromUri } from "../services/audioService";
+import { AudioPlayer, AudioPlayerStatus } from "../types/audio";
 import {
   NotificationClickEvent,
   NotificationWillDisplayEvent,
@@ -16,24 +18,24 @@ interface NotificationData {
 interface AudioPlaybackState {
   currentlyPlayingConversationId: string | null;
   lastMessageCounts: Record<string, number>;
-  audioPlayer: any | null;
-  playerStatus: any | null;
-  setAudioPlayer: (player: any) => void;
-  setPlayerStatus: (status: any) => void;
+  audioPlayer: AudioPlayer | null;
+  playerStatus: AudioPlayerStatus | null;
+  setAudioPlayer: (player: AudioPlayer) => void;
+  setPlayerStatus: (status: AudioPlayerStatus) => void;
   setCurrentlyPlaying: (conversationId: string | null) => void;
   clearCurrentlyPlaying: () => void;
   updateMessageCount: (conversationId: string, count: number) => void;
-  playFromUri: (uri: string, conversationId?: string, audioPlayer?: any) => Promise<void>;
+  playFromUri: (uri: string, conversationId?: string, audioPlayer?: AudioPlayer) => Promise<void>;
   handleAutoPlay: (
     conversations: Conversation[],
     autoplay: boolean,
     profileId: string | undefined,
-    audioPlayer: any
+    audioPlayer: AudioPlayer
   ) => void;
   initializeNotificationHandlers: (
     setSelectedConversation: (id: string) => void,
     profileId: string,
-    audioPlayer: any
+    audioPlayer: AudioPlayer
   ) => () => void;
 }
 
@@ -73,36 +75,18 @@ export const useAudioPlaybackStore = create<AudioPlaybackState>((set, get) => ({
   },
 
   playFromUri: async (uri: string, conversationId?: string, audioPlayer?: any) => {
-    try {
-      const docDir = documentDirectory;
-      if (!docDir) {
-        console.error("Error playing audio: Document directory is undefined");
-        return;
-      }
-
-      const player = audioPlayer || get().audioPlayer;
-      if (!player) {
-        console.error("Error playing audio: Audio player not available");
-        return;
-      }
-
-      const downloadResumable = createDownloadResumable(
-        uri,
-        docDir + "notification.mp4",
-        {}
-      );
-
-      const newFile = await downloadResumable.downloadAsync();
-      if (newFile) {
-        player.replace(newFile.uri);
-        player.play();
-        if (conversationId) {
-          set({ currentlyPlayingConversationId: conversationId });
-        }
-      }
-    } catch (error) {
-      console.error("Error playing audio from URI:", error);
+    const player = audioPlayer || get().audioPlayer;
+    if (!player) {
+      console.error("Error playing audio: Audio player not available");
+      return;
     }
+
+    await playAudioFromUri(
+      uri,
+      player,
+      conversationId,
+      conversationId ? (id: string) => set({ currentlyPlayingConversationId: id }) : undefined
+    );
   },
 
   handleAutoPlay: (conversations, autoplay, profileId, audioPlayer) => {
@@ -130,13 +114,7 @@ export const useAudioPlaybackStore = create<AudioPlaybackState>((set, get) => ({
         }
 
         // Find the newest unheard message from the other user
-        const unheardMessages = conversation.messages
-          .filter(
-            (m) =>
-              m.uid === otherUserUid && // From other user
-              !m.isRead // Not read yet
-          )
-          .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime()); // Sort by timestamp, newest first
+        const unheardMessages = getUnreadMessagesFromOtherUser(conversation, otherUserUid);
 
         if (unheardMessages.length > 0) {
           const newestUnheard = unheardMessages[0];

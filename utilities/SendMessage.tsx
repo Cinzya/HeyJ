@@ -1,14 +1,16 @@
-import { useNavigation } from "@react-navigation/native";
+import { NavigationProp } from "@react-navigation/native";
 import { Alert } from "react-native";
 import { useProfile } from "./ProfileProvider";
+import { handleError, handleApiError } from "./errorHandler";
 import UUID from "react-native-uuid";
 import { supabase } from "../utilities/Supabase";
 import Message from "../objects/Message";
 import Profile from "../objects/Profile";
 import Conversation from "../objects/Conversation";
+import { RootStackParamList } from "../types/navigation";
 
 export const sendMessage = async (
-  navigation: any,
+  navigation: NavigationProp<RootStackParamList>,
   profileData: {
     profile: Profile | null;
     conversations: Conversation[];
@@ -57,13 +59,12 @@ export const sendMessage = async (
       .upload(fileName, buffer, { contentType: "audio/mp3" });
 
     if (uploadError) {
-      console.error("❌ Storage upload error:", uploadError);
-      Alert.alert("Error", `Failed to upload audio: ${uploadError.message}`);
+      const errorMessage = handleApiError(uploadError, "Failed to upload audio");
+      Alert.alert("Error", errorMessage);
       return;
     }
 
     if (!uploadData) {
-      console.error("❌ No upload data returned");
       Alert.alert("Error", "Failed to upload audio. Please try again.");
       return;
     }
@@ -82,8 +83,8 @@ export const sendMessage = async (
       .insert(message.toJSON());
 
     if (messageError) {
-      console.error("❌ Message insert error:", messageError);
-      Alert.alert("Error", `Failed to save message: ${messageError.message}`);
+      const errorMessage = handleApiError(messageError, "Failed to save message");
+      Alert.alert("Error", errorMessage);
       return;
     }
 
@@ -102,11 +103,7 @@ export const sendMessage = async (
       .upsert(newConversation);
 
     if (conversationError) {
-      console.error("❌ Conversation update error:", conversationError);
-      Alert.alert(
-        "Something went wrong...",
-        "We were unable to send your message. Please try again."
-      );
+      handleError(conversationError, "SendMessage - conversation update", true, "We were unable to send your message. Please try again.");
       return;
     }
 
@@ -192,7 +189,6 @@ export const sendMessage = async (
 
     console.log("✅ Message sent successfully!");
   } catch (error: any) {
-    console.error("❌ Unexpected error in sendMessage:", error);
-    Alert.alert("Error", `Failed to send message: ${error.message || "Unknown error"}`);
+    handleError(error, "SendMessage", true, "Failed to send message");
   }
 };

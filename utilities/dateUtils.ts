@@ -26,3 +26,19 @@ export const formatTime = (timestamp: Date): string => {
   return format(timestamp, "h:mm a");
 };
 
+/**
+ * Formats a date timestamp for display in message components
+ * @param timestamp - The date to format (optional)
+ * @returns Formatted timestamp string (e.g., "3:45 PM", "Yesterday 2:30 PM", "12/25 3:45 PM")
+ */
+export const formatMessageTimestamp = (timestamp?: Date): string => {
+  if (!timestamp) return "";
+  if (isToday(timestamp)) {
+    return format(timestamp, "h:mm a");
+  } else if (isYesterday(timestamp)) {
+    return "Yesterday " + format(timestamp, "h:mm a");
+  } else {
+    return format(timestamp, "MM/dd h:mm a");
+  }
+};
+

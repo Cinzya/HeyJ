@@ -3,18 +3,17 @@ import { View, Text, StyleSheet, TouchableOpacity, Platform, Image } from "react
 import Slider from "@react-native-community/slider";
 // @ts-expect-error
 import { Entypo, FontAwesome } from "react-native-vector-icons";
-import { format, isToday, isYesterday } from "date-fns";
+import { formatMessageTimestamp } from "../../utilities/dateUtils";
 import {
   useAudioPlayer,
   useAudioPlayerStatus,
   AudioSource,
   setAudioModeAsync
 } from "expo-audio";
-import { documentDirectory, createDownloadResumable } from "expo-file-system/legacy";
-import UUID from "react-native-uuid";
 import { markMessageAsRead } from "../../utilities/MarkMessageAsRead";
 import { useAudioSettings } from "../../utilities/AudioSettingsProvider";
 import { supabase } from "../../utilities/Supabase";
+import { loadAudioFile } from "../../services/audioService";
 
 const RecordingPlayer = ({
   uri,
@@ -32,7 +31,7 @@ const RecordingPlayer = ({
 }: {
   uri: string;
   currentUri: string;
-  setCurrentUri: any;
+  setCurrentUri: (uri: string) => void;
   messageId: string;
   senderUid: string;
   currentUserUid: string;
@@ -133,68 +132,52 @@ const RecordingPlayer = ({
       setIsLoading(true);
       setIsReady(false);
 
-      const docDir = documentDirectory;
-      if (!docDir) {
-        console.error("Error loading audio: Document directory is undefined");
+      const localFileUri = await loadAudioFile(uri);
+      if (!localFileUri) {
         setIsLoading(false);
+        setIsReady(false);
         return;
       }
 
-      console.log("📥 Loading audio from:", uri);
-      const downloadResumable = createDownloadResumable(
-        uri,
-        docDir + `${UUID.v4()}.mp4`,
-        { cache: true }
-      );
+      // Replace the audio source
+      audioPlayer.replace(localFileUri);
+      setFile(localFileUri);
 
-      const newFile = await downloadResumable.downloadAsync();
+      // Wait for player to be ready (especially important on iOS)
+      // iOS needs time to prepare the audio
+      const waitTime = Platform.OS === 'ios' ? 200 : 100;
+      await new Promise(resolve => setTimeout(resolve, waitTime));
 
-      if (newFile) {
-        console.log("✅ Audio file downloaded:", newFile.uri);
+      // Verify player is ready by checking if duration is available
+      let attempts = 0;
+      while (attempts < 10 && !playerStatus.duration) {
+        await new Promise(resolve => setTimeout(resolve, 50));
+        attempts++;
+      }
 
-        // Replace the audio source
-        audioPlayer.replace(newFile.uri);
-        setFile(newFile.uri);
+      setIsReady(true);
+      console.log("✅ Audio player ready, duration:", playerStatus.duration);
 
-        // Wait for player to be ready (especially important on iOS)
-        // iOS needs time to prepare the audio
-        const waitTime = Platform.OS === 'ios' ? 200 : 100;
-        await new Promise(resolve => setTimeout(resolve, waitTime));
-
-        // Verify player is ready by checking if duration is available
-        let attempts = 0;
-        while (attempts < 10 && !playerStatus.duration) {
-          await new Promise(resolve => setTimeout(resolve, 50));
-          attempts++;
-        }
-
-        setIsReady(true);
-        console.log("✅ Audio player ready, duration:", playerStatus.duration);
-
-        // If we should play after loading, do it now
-        if (shouldPlay && currentUri === uri) {
-          // Ensure audio session is configured for playback on iOS
-          if (Platform.OS === 'ios') {
-            try {
-              await setAudioModeAsync({
-                playsInSilentMode: true,
-                allowsRecording: false,
-              });
-            } catch (error) {
-              console.error("Error setting audio mode for playback:", error);
-            }
+      // If we should play after loading, do it now
+      if (shouldPlay && currentUri === uri) {
+        // Ensure audio session is configured for playback on iOS
+        if (Platform.OS === 'ios') {
+          try {
+            await setAudioModeAsync({
+              playsInSilentMode: true,
+              allowsRecording: false,
+            });
+          } catch (error) {
+            console.error("Error setting audio mode for playback:", error);
           }
-          audioPlayer.play();
-          // Mark as read after playback starts
-          setTimeout(() => {
-            if (playerStatus.playing && currentUri === uri) {
-              handlePlayStart();
-            }
-          }, 100);
         }
-      } else {
-        console.error("Error loading audio: File is undefined");
-        setIsReady(false);
+        audioPlayer.play();
+        // Mark as read after playback starts
+        setTimeout(() => {
+          if (playerStatus.playing && currentUri === uri) {
+            handlePlayStart();
+          }
+        }, 100);
       }
     } catch (error) {
       console.error("Error loading audio:", error);
@@ -439,16 +422,6 @@ const RecordingPlayer = ({
   // If localIsRead has been explicitly set (not just initialized), use it
   const displayIsRead = hasToggledRead.current ? localIsRead : (isRead || false);
 
-  const formatTimestamp = (ts?: Date): string => {
-    if (!ts) return "";
-    if (isToday(ts)) {
-      return format(ts, "h:mm a");
-    } else if (isYesterday(ts)) {
-      return "Yesterday " + format(ts, "h:mm a");
-    } else {
-      return format(ts, "MM/dd h:mm a");
-    }
-  };
 
   return (
     <View style={[styles.wrapper, isIncoming ? styles.wrapperIncoming : styles.wrapperOutgoing]}>
@@ -479,7 +452,7 @@ const RecordingPlayer = ({
                 {showReadStatus && <View style={styles.separator} />}
                 <View style={styles.timestampContainer}>
                   <FontAwesome name="clock-o" size={12} style={styles.timestampIcon} />
-                  <Text style={styles.timestamp}>{formatTimestamp(timestamp) || ""}</Text>
+                  <Text style={styles.timestamp}>{formatMessageTimestamp(timestamp) || ""}</Text>
                 </View>
               </>
             )}
