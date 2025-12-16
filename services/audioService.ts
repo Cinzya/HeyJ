@@ -1,5 +1,5 @@
 import { Platform } from "react-native";
-import { documentDirectory, createDownloadResumable } from "expo-file-system/legacy";
+import { documentDirectory, createDownloadResumable, cacheDirectory } from "expo-file-system/legacy";
 import { setAudioModeAsync } from "expo-audio";
 import UUID from "react-native-uuid";
 import { AudioPlayer } from "../types/audio";
@@ -15,6 +15,25 @@ export const loadAudioFile = async (
   fileName?: string
 ): Promise<string | null> => {
   try {
+    // On web, we can use the URI directly or cacheDirectory
+    if (Platform.OS === 'web') {
+      // For web, we can use the remote URI directly or download to cache
+      const cacheDir = cacheDirectory || documentDirectory;
+      if (cacheDir) {
+        const filePath = cacheDir + (fileName || `${UUID.v4()}.mp4`);
+        console.log("📥 Loading audio from:", uri);
+        const downloadResumable = createDownloadResumable(uri, filePath, { cache: true });
+        const newFile = await downloadResumable.downloadAsync();
+        if (newFile) {
+          console.log("✅ Audio file downloaded:", newFile.uri);
+          return newFile.uri;
+        }
+      }
+      // Fallback: return the remote URI directly for web
+      console.log("📥 Using remote URI for web:", uri);
+      return uri;
+    }
+
     const docDir = documentDirectory;
     if (!docDir) {
       console.error("Error loading audio: Document directory is undefined");
@@ -55,12 +74,6 @@ export const playAudioFromUri = async (
   onConversationPlaying?: (conversationId: string) => void
 ): Promise<void> => {
   try {
-    const docDir = documentDirectory;
-    if (!docDir) {
-      console.error("Error playing audio: Document directory is undefined");
-      return;
-    }
-
     if (!audioPlayer) {
       console.error("Error playing audio: Audio player not available");
       return;
@@ -76,6 +89,22 @@ export const playAudioFromUri = async (
       } catch (error) {
         console.error("Error setting audio mode for playback:", error);
       }
+    }
+
+    // On web, we can use the URI directly
+    if (Platform.OS === 'web') {
+      audioPlayer.replace(uri);
+      audioPlayer.play();
+      if (conversationId && onConversationPlaying) {
+        onConversationPlaying(conversationId);
+      }
+      return;
+    }
+
+    const docDir = documentDirectory;
+    if (!docDir) {
+      console.error("Error playing audio: Document directory is undefined");
+      return;
     }
 
     const downloadResumable = createDownloadResumable(
