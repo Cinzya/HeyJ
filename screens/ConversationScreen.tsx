@@ -349,7 +349,7 @@ const ConversationScreen = ({ route }: { route: any }) => {
             profilePicture={otherProfile.profilePicture}
             isIncoming={true}
             autoPlay={autoplay && !message.isRead && isAutoPlaying}
-            onPlaybackFinished={isAutoPlaying ? playNextUnheardMessage : undefined}
+            onPlaybackFinished={isAutoPlaying ? playNextUnreadMessage : undefined}
           />
         </View>
       );
@@ -480,36 +480,54 @@ const ConversationScreen = ({ route }: { route: any }) => {
   }, [conversation?.messages.length, autoplay, profile?.uid, otherProfile?.uid, conversation?.messages]);
 
   // Function to find and play the next unheard message
-  const playNextUnheardMessage = useCallback(() => {
+  const playNextUnreadMessage = useCallback(() => {
     if (!autoplay || !conversation || !profile || !otherProfile) {
       setIsAutoPlaying(false);
       return;
     }
 
-    // Find all unheard messages from the other user, sorted by timestamp
-    // Exclude the currently playing message
-    const unheardMessages = conversation.messages
-      .filter(
-        (m) =>
-          m.uid === otherProfile.uid && // From other user
-          !m.isRead && // Not read yet
-          m.audioUrl !== currentUri // Not the currently playing message
-      )
-      .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime()); // Sort by timestamp, oldest first
+    // Get all messages sorted chronologically
+    const sortedMessages = sortBy(conversation.messages, (m) => m.timestamp.getTime());
 
-    console.log("🔍 Looking for next unheard message. Found:", unheardMessages.length, "Current URI:", currentUri);
+    // Find the current message by matching audioUrl
+    const currentMessageIndex = sortedMessages.findIndex(
+      (m) => m.audioUrl === currentUri
+    );
 
-    if (unheardMessages.length > 0) {
-      const nextUnheard = unheardMessages[0];
-      console.log("▶️ Playing next unheard message:", nextUnheard.messageId, "URI:", nextUnheard.audioUrl);
+    if (currentMessageIndex === -1) {
+      console.log("❌ Current message not found");
+      setIsAutoPlaying(false);
+      return;
+    }
+
+    // Look for the next message in chronological order
+    for (let i = currentMessageIndex + 1; i < sortedMessages.length; i++) {
+      const nextMessage = sortedMessages[i];
+
+      // Check if it's an incoming message (from other user)
+      if (nextMessage.uid !== otherProfile.uid) {
+        continue; // Skip outgoing messages
+      }
+
+      // If we encounter a read message, stop auto-play
+      if (nextMessage.isRead) {
+        console.log("✅ Next message is read, stopping auto-play");
+        setIsAutoPlaying(false);
+        return;
+      }
+
+      // Found an unread incoming message - play it
+      console.log("▶️ Playing next unread message:", nextMessage.messageId, "URI:", nextMessage.audioUrl);
       // Small delay to ensure previous message has finished
       setTimeout(() => {
-        setCurrentUri(nextUnheard.audioUrl);
+        setCurrentUri(nextMessage.audioUrl);
       }, 500);
-    } else {
-      console.log("✅ No more unheard messages");
-      setIsAutoPlaying(false);
+      return;
     }
+
+    // No more messages found
+    console.log("✅ No more unread messages");
+    setIsAutoPlaying(false);
   }, [autoplay, conversation, profile, otherProfile, currentUri]);
 
   // Auto-play oldest unheard message when conversation opens and autoplay is enabled
@@ -520,7 +538,7 @@ const ConversationScreen = ({ route }: { route: any }) => {
 
     // Small delay to ensure component is mounted
     setTimeout(() => {
-      playNextUnheardMessage();
+      playNextUnreadMessage();
     }, 500);
   }, [conversation?.conversationId, autoplay, profile?.uid, otherProfile?.uid]);
 
