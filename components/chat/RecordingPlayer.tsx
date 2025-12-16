@@ -64,10 +64,18 @@ const RecordingPlayer = ({
     // Only mark as read if recipient is playing (not the sender) and this is the current message
     // Double-check that we're actually playing this specific message
     if (!hasMarkedAsRead.current && currentUserUid !== senderUid && currentUri === uri && playerStatus.playing) {
-      console.log("📖 Marking message as read:", messageId, "URI:", uri);
+      console.log("📖 Marking message as read:", messageId, "URI:", uri, "Playing:", playerStatus.playing);
       markMessageAsRead(messageId);
       hasMarkedAsRead.current = true;
       setLocalIsRead(true);
+    } else {
+      console.log("⚠️ Not marking as read:", {
+        hasMarkedAsRead: hasMarkedAsRead.current,
+        isRecipient: currentUserUid !== senderUid,
+        isCurrentMessage: currentUri === uri,
+        isPlaying: playerStatus.playing,
+        messageId
+      });
     }
   };
 
@@ -123,8 +131,8 @@ const RecordingPlayer = ({
     if (isLoading || file) {
       // If already loaded and should play, play it
       if (shouldPlay && isReady && file && currentUri === uri) {
-        handlePlayStart();
         audioPlayer.play();
+        // Note: Marking as read is now handled by the useEffect that watches playerStatus.playing
       }
       return; // Already loading or loaded
     }
@@ -173,12 +181,7 @@ const RecordingPlayer = ({
           }
         }
         audioPlayer.play();
-        // Mark as read after playback starts
-        setTimeout(() => {
-          if (playerStatus.playing && currentUri === uri) {
-            handlePlayStart();
-          }
-        }, 100);
+        // Note: Marking as read is now handled by the useEffect that watches playerStatus.playing
       }
     } catch (error) {
       console.error("Error loading audio:", error);
@@ -236,12 +239,7 @@ const RecordingPlayer = ({
         // Audio is already loaded, play immediately
         hasAutoPlayed.current = true;
         audioPlayer.play();
-        // Mark as read after a small delay to ensure playback actually started
-        setTimeout(() => {
-          if (playerStatus.playing && currentUri === uri) {
-            handlePlayStart();
-          }
-        }, 100);
+        // Note: Marking as read is now handled by the useEffect that watches playerStatus.playing
       } else if (!isLoading && !file) {
         // Audio needs to be loaded first, then play
         hasAutoPlayed.current = true;
@@ -256,6 +254,27 @@ const RecordingPlayer = ({
       setLocalIsRead(true);
     }
   }, [isRead]);
+
+  // Watch for playback start and mark as read when playing starts
+  useEffect(() => {
+    // Only mark as read if:
+    // 1. This is the current message (currentUri === uri)
+    // 2. Player is actually playing (playerStatus.playing)
+    // 3. User is the recipient (not the sender)
+    // 4. We haven't already marked it as read
+    // 5. Audio is ready
+    if (
+      currentUri === uri &&
+      playerStatus.playing &&
+      currentUserUid !== senderUid &&
+      !hasMarkedAsRead.current &&
+      isReady &&
+      file
+    ) {
+      console.log("🎵 Playback started - marking as read:", messageId);
+      handlePlayStart();
+    }
+  }, [playerStatus.playing, currentUri, uri, currentUserUid, senderUid, isReady, file, messageId]);
 
   // Sync duration when player is ready (regardless of currentUri)
   useEffect(() => {
@@ -363,12 +382,7 @@ const RecordingPlayer = ({
           // #endregion
           console.error("Error playing audio when switching:", error);
         }
-        // Mark as read after playback starts
-        setTimeout(() => {
-          if (playerStatus.playing && currentUri === uri) {
-            handlePlayStart();
-          }
-        }, 100);
+        // Note: Marking as read is now handled by the useEffect that watches playerStatus.playing
         return;
       }
       // Otherwise, load it and then play
@@ -401,12 +415,7 @@ const RecordingPlayer = ({
           // #region agent log
           fetch('http://127.0.0.1:7242/ingest/f5e603aa-4ab7-41d0-b1fe-b8ca210c432d', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'RecordingPlayer.tsx:391', message: 'After audioPlayer.play() call - success', data: { uri }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run3', hypothesisId: 'F' }) }).catch(() => { });
           // #endregion
-          // Mark as read after playback starts
-          setTimeout(() => {
-            if (playerStatus.playing && currentUri === uri) {
-              handlePlayStart();
-            }
-          }, 100);
+          // Note: Marking as read is now handled by the useEffect that watches playerStatus.playing
         } catch (error) {
           // #region agent log
           fetch('http://127.0.0.1:7242/ingest/f5e603aa-4ab7-41d0-b1fe-b8ca210c432d', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'RecordingPlayer.tsx:399', message: 'Error calling audioPlayer.play()', data: { uri, errorMessage: (error as Error)?.message || String(error), errorString: String(error) }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run3', hypothesisId: 'F' }) }).catch(() => { });
