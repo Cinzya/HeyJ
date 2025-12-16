@@ -1,0 +1,410 @@
+import React, { useState, useEffect } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  Image,
+  Alert,
+} from "react-native";
+import { useProfile } from "../utilities/ProfileProvider";
+import FriendRequest from "../objects/FriendRequest";
+import Profile from "../objects/Profile";
+import { supabase } from "../utilities/Supabase";
+// @ts-expect-error
+import { Ionicons } from "react-native-vector-icons";
+
+const FriendRequestsScreen = ({ navigation }: { navigation: any }) => {
+  const {
+    profile,
+    friendRequests,
+    getFriendRequests,
+    acceptFriendRequest,
+    rejectFriendRequest,
+    blockUser,
+    cancelFriendRequest,
+  } = useProfile();
+
+  const [requesterProfiles, setRequesterProfiles] = useState<
+    Map<string, Profile>
+  >(new Map());
+
+  useEffect(() => {
+    if (profile) {
+      getFriendRequests();
+    }
+  }, [profile]);
+
+  useEffect(() => {
+    const fetchRequesterProfiles = async () => {
+      if (!profile || friendRequests.length === 0) {
+        setRequesterProfiles(new Map());
+        return;
+      }
+
+      const profilesMap = new Map<string, Profile>();
+      const uidsToFetch = new Set<string>();
+
+      // Collect all unique UIDs we need to fetch
+      friendRequests.forEach((request) => {
+        if (request.requesterId !== profile.uid) {
+          uidsToFetch.add(request.requesterId);
+        }
+        if (request.addresseeId !== profile.uid) {
+          uidsToFetch.add(request.addresseeId);
+        }
+      });
+
+      // Fetch all profiles at once
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .in("uid", Array.from(uidsToFetch));
+
+      if (!error && data) {
+        data.forEach((p) => {
+          profilesMap.set(p.uid, Profile.fromJSON(p));
+        });
+      }
+
+      setRequesterProfiles(profilesMap);
+    };
+
+    fetchRequesterProfiles();
+  }, [friendRequests, profile]);
+
+  const incomingRequests = friendRequests.filter(
+    (req) => req.addresseeId === profile?.uid && req.status === "pending"
+  );
+
+  const outgoingRequests = friendRequests.filter(
+    (req) => req.requesterId === profile?.uid && req.status === "pending"
+  );
+
+  const handleAccept = async (requestId: string) => {
+    const result = await acceptFriendRequest(requestId);
+    if (result.success) {
+      Alert.alert("Success", "Friend request accepted!");
+    } else {
+      Alert.alert("Error", result.error || "Failed to accept request");
+    }
+  };
+
+  const handleReject = async (requestId: string) => {
+    Alert.alert(
+      "Reject Request",
+      "Are you sure you want to reject this friend request?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Reject",
+          style: "destructive",
+          onPress: async () => {
+            const result = await rejectFriendRequest(requestId);
+            if (result.success) {
+              Alert.alert("Request Rejected", "The friend request has been rejected.");
+            } else {
+              Alert.alert("Error", result.error || "Failed to reject request");
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleBlock = async (requestId: string) => {
+    Alert.alert(
+      "Block User",
+      "Are you sure you want to block this user? They won't be able to send you friend requests.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Block",
+          style: "destructive",
+          onPress: async () => {
+            const result = await blockUser(requestId);
+            if (result.success) {
+              Alert.alert("User Blocked", "This user has been blocked.");
+            } else {
+              Alert.alert("Error", result.error || "Failed to block user");
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleCancel = async (requestId: string) => {
+    const result = await cancelFriendRequest(requestId);
+    if (result.success) {
+      Alert.alert("Request Cancelled", "Friend request has been cancelled.");
+    } else {
+      Alert.alert("Error", result.error || "Failed to cancel request");
+    }
+  };
+
+  const renderIncomingRequest = ({ item }: { item: FriendRequest }) => {
+    const requesterProfile = requesterProfiles.get(item.requesterId);
+    if (!requesterProfile) {
+      return null;
+    }
+
+    // Check if request was updated (indicates it might have been rejected before)
+    const wasUpdated = item.updatedAt.getTime() > item.createdAt.getTime() + 1000; // 1 second buffer
+
+    return (
+      <View style={styles.requestItem}>
+        <Image
+          style={styles.profilePicture}
+          source={{ uri: requesterProfile.profilePicture }}
+        />
+        <View style={styles.requestInfo}>
+          <Text style={styles.name}>{requesterProfile.name}</Text>
+          <Text style={styles.userCode}>{requesterProfile.userCode}</Text>
+          {wasUpdated && (
+            <Text style={styles.warningText}>
+              This user has sent you a request before
+            </Text>
+          )}
+        </View>
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity
+            style={[styles.button, styles.acceptButton]}
+            onPress={() => handleAccept(item.id)}
+          >
+            <Text style={styles.acceptButtonText}>Accept</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.button, styles.rejectButton]}
+            onPress={() => handleReject(item.id)}
+          >
+            <Text style={styles.rejectButtonText}>Reject</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.button, styles.blockButton, wasUpdated && styles.blockButtonProminent]}
+            onPress={() => handleBlock(item.id)}
+          >
+            <Text style={styles.blockButtonText}>Block</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
+
+  const renderOutgoingRequest = ({ item }: { item: FriendRequest }) => {
+    const addresseeProfile = requesterProfiles.get(item.addresseeId);
+    if (!addresseeProfile) {
+      return null;
+    }
+
+    return (
+      <View style={styles.requestItem}>
+        <Image
+          style={styles.profilePicture}
+          source={{ uri: addresseeProfile.profilePicture }}
+        />
+        <View style={styles.requestInfo}>
+          <Text style={styles.name}>{addresseeProfile.name}</Text>
+          <Text style={styles.userCode}>{addresseeProfile.userCode}</Text>
+          <Text style={styles.pendingText}>Pending...</Text>
+        </View>
+        <TouchableOpacity
+          style={[styles.button, styles.cancelButton]}
+          onPress={() => handleCancel(item.id)}
+        >
+          <Text style={styles.cancelButtonText}>Cancel</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-back" size={24} color="#000" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Friend Requests</Text>
+      </View>
+
+      {incomingRequests.length === 0 && outgoingRequests.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="person-add-outline" size={64} color="#999" />
+          <Text style={styles.emptyText}>No friend requests</Text>
+        </View>
+      ) : (
+        <>
+          {incomingRequests.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>
+                Incoming ({incomingRequests.length})
+              </Text>
+              <FlatList
+                data={incomingRequests}
+                renderItem={renderIncomingRequest}
+                keyExtractor={(item) => item.id}
+                ItemSeparatorComponent={() => <View style={styles.separator} />}
+              />
+            </View>
+          )}
+
+          {outgoingRequests.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>
+                Outgoing ({outgoingRequests.length})
+              </Text>
+              <FlatList
+                data={outgoingRequests}
+                renderItem={renderOutgoingRequest}
+                keyExtractor={(item) => item.id}
+                ItemSeparatorComponent={() => <View style={styles.separator} />}
+              />
+            </View>
+          )}
+        </>
+      )}
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#F9F9F9",
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 15,
+    paddingVertical: 15,
+    backgroundColor: "#FFF",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E0E0E0",
+  },
+  backButton: {
+    marginRight: 15,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: "600",
+    color: "#000",
+  },
+  section: {
+    marginTop: 20,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#666",
+    paddingHorizontal: 15,
+    marginBottom: 10,
+  },
+  requestItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 15,
+    backgroundColor: "#FFF",
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+  },
+  profilePicture: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    marginRight: 15,
+  },
+  requestInfo: {
+    flex: 1,
+  },
+  name: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#000",
+    marginBottom: 4,
+  },
+  userCode: {
+    fontSize: 14,
+    color: "#666",
+    marginBottom: 4,
+  },
+  pendingText: {
+    fontSize: 12,
+    color: "#999",
+    fontStyle: "italic",
+  },
+  warningText: {
+    fontSize: 12,
+    color: "#FF3B30",
+    fontStyle: "italic",
+    marginTop: 2,
+  },
+  buttonContainer: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  button: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    minWidth: 70,
+    alignItems: "center",
+  },
+  acceptButton: {
+    backgroundColor: "#000",
+  },
+  acceptButtonText: {
+    color: "#FFF",
+    fontWeight: "600",
+    fontSize: 14,
+  },
+  rejectButton: {
+    backgroundColor: "#F0F0F0",
+  },
+  rejectButtonText: {
+    color: "#666",
+    fontWeight: "600",
+    fontSize: 14,
+  },
+  blockButton: {
+    backgroundColor: "#FF3B30",
+  },
+  blockButtonProminent: {
+    backgroundColor: "#D32F2F",
+    borderWidth: 2,
+    borderColor: "#B71C1C",
+  },
+  blockButtonText: {
+    color: "#FFF",
+    fontWeight: "600",
+    fontSize: 14,
+  },
+  cancelButton: {
+    backgroundColor: "#F0F0F0",
+  },
+  cancelButtonText: {
+    color: "#666",
+    fontWeight: "600",
+    fontSize: 14,
+  },
+  separator: {
+    height: 1,
+    backgroundColor: "#F0F0F0",
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  emptyText: {
+    fontSize: 16,
+    color: "#999",
+    marginTop: 16,
+  },
+});
+
+export default FriendRequestsScreen;
+

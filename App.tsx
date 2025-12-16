@@ -1,4 +1,4 @@
-import { StyleSheet, TouchableOpacity, View } from "react-native";
+import { StyleSheet, TouchableOpacity, View, Text } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -15,6 +15,7 @@ import LoginScreen from "./screens/LoginScreen";
 import SignupScreen from "./screens/SignupScreen";
 import { ActionSheetProvider } from "@expo/react-native-action-sheet";
 import ConversationScreen from "./screens/ConversationScreen";
+import FriendRequestsScreen from "./screens/FriendRequestsScreen";
 import ModalWrapper from "./utilities/ModalWrapper";
 global.Buffer = require("buffer").Buffer;
 
@@ -87,7 +88,7 @@ export default function App() {
 }
 
 const Navigation = () => {
-  const { setViewProfile } = useProfile();
+  const { setViewProfile, friendRequests, profile } = useProfile();
 
   return (
     <Stack.Navigator>
@@ -95,10 +96,14 @@ const Navigation = () => {
         name="Home"
         component={HomeScreen}
         options={({ route, navigation }: { route: any; navigation: any }) => {
+          const incomingCount = friendRequests.filter(
+            (req) => req.status === "pending" && req.addresseeId === profile?.uid
+          ).length;
+          
           return {
-            headerLeft: () => (
+            headerRight: () => (
               <TouchableOpacity
-                style={{ left: 15 }}
+                style={{ left: -25, top: -5 }}
                 onPress={() => setViewProfile(true)}
               >
                 <Ionicons name="person" size={25} />
@@ -114,6 +119,13 @@ const Navigation = () => {
         options={{
           headerBackTitleStyle: styles.backButton,
           headerTintColor: "#000",
+        }}
+      />
+      <Stack.Screen
+        name="FriendRequests"
+        component={FriendRequestsScreen}
+        options={{
+          headerShown: false,
         }}
       />
     </Stack.Navigator>

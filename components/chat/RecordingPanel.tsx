@@ -1,3 +1,4 @@
+import React, { useState } from "react";
 import {
     View,
     StyleSheet,
@@ -8,8 +9,11 @@ import {
     DimensionValue,
 } from "react-native";
 // @ts-expect-error
-import { FontAwesome } from "react-native-vector-icons";
+import { FontAwesome, MaterialCommunityIcons } from "react-native-vector-icons";
 import { useAudioSettings } from "../../utilities/AudioSettingsProvider";
+import AddFriendModal from "../profile/AddFriendModal";
+import DropdownPicker from "react-native-dropdown-picker";
+import Profile from "../../objects/Profile";
 
 interface RecordingPanelProps {
     onPressIn: () => void;
@@ -18,6 +22,9 @@ interface RecordingPanelProps {
     showTopButtons?: boolean;
     showRecipient?: boolean;
     recipientName?: string;
+    friends?: Profile[];
+    selectedFriendUid?: string | null;
+    onFriendSelected?: (friendUid: string) => void;
     showWaveform?: boolean;
     loudness?: Number[];
     renderLeftWaves?: () => React.ReactElement;
@@ -31,6 +38,9 @@ const RecordingPanel = ({
     showTopButtons = false,
     showRecipient = false,
     recipientName = "",
+    friends = [],
+    selectedFriendUid = null,
+    onFriendSelected,
     showWaveform = false,
     loudness = Array.from({ length: 20 }, () => 15),
     renderLeftWaves,
@@ -39,6 +49,9 @@ const RecordingPanel = ({
     const { speakerMode, toggleSpeakerMode, autoplay, toggleAutoplay } = useAudioSettings();
     const windowDimensions = useWindowDimensions();
     const styles = Styles(windowDimensions.width);
+    const [showAddFriendModal, setShowAddFriendModal] = useState(false);
+    const [isCollapsed, setIsCollapsed] = useState(false);
+    const [dropdownOpen, setDropdownOpen] = useState(false);
 
     const defaultRenderLeftWaves = () => {
         return (
@@ -79,36 +92,93 @@ const RecordingPanel = ({
         <View style={styles.selectionContainer}>
             {showTopButtons && (
                 <View style={styles.topButtonRow}>
+                    <View style={styles.buttonGroup}>
+                        <TouchableOpacity
+                            onPress={toggleSpeakerMode}
+                            style={[
+                                styles.speakerButton,
+                                speakerMode && styles.speakerButtonActive,
+                                isCollapsed && styles.buttonCollapsed
+                            ]}
+                            activeOpacity={0.7}
+                        >
+                            <FontAwesome
+                                name="volume-up"
+                                style={[
+                                    styles.speakerIcon,
+                                    speakerMode && styles.speakerIconActive,
+                                    isCollapsed && styles.iconCollapsed
+                                ]}
+                            />
+                            {!isCollapsed && (
+                                <Text style={[
+                                    styles.speakerLabel,
+                                    speakerMode && styles.speakerLabelActive
+                                ]}>
+                                    SPEAKER
+                                </Text>
+                            )}
+                            {speakerMode && !isCollapsed && <View style={styles.speakerIndicator} />}
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            onPress={toggleAutoplay}
+                            style={[
+                                styles.autoplayButton,
+                                autoplay && styles.autoplayButtonActive,
+                                isCollapsed && styles.buttonCollapsed
+                            ]}
+                            activeOpacity={0.7}
+                        >
+                            <FontAwesome
+                                name="play-circle"
+                                style={[
+                                    styles.autoplayIcon,
+                                    autoplay && styles.autoplayIconActive,
+                                    isCollapsed && styles.iconCollapsed
+                                ]}
+                            />
+                            {!isCollapsed && (
+                                <Text style={[
+                                    styles.autoplayLabel,
+                                    autoplay && styles.autoplayLabelActive
+                                ]}>
+                                    PLAY
+                                </Text>
+                            )}
+                            {autoplay && !isCollapsed && <View style={styles.autoplayIndicator} />}
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            onPress={() => setShowAddFriendModal(true)}
+                            style={[styles.addFriendButton, isCollapsed && styles.buttonCollapsed]}
+                            activeOpacity={0.7}
+                        >
+                            <MaterialCommunityIcons
+                                name="account-plus"
+                                style={[styles.addFriendIcon, isCollapsed && styles.iconCollapsed]}
+                            />
+                            {!isCollapsed && (
+                                <Text style={styles.addFriendLabel}>
+                                    FRIEND
+                                </Text>
+                            )}
+                        </TouchableOpacity>
+                    </View>
                     <TouchableOpacity
-                        onPress={toggleSpeakerMode}
-                        style={[styles.speakerButton, speakerMode && styles.speakerButtonActive]}
+                        onPress={() => setIsCollapsed(!isCollapsed)}
+                        style={[styles.collapseButton, isCollapsed && styles.buttonCollapsed]}
                         activeOpacity={0.7}
                     >
                         <FontAwesome
-                            name="volume-up"
-                            style={[styles.speakerIcon, speakerMode && styles.speakerIconActive]}
+                            name={isCollapsed ? "plus" : "minus"}
+                            style={[styles.collapseIcon, isCollapsed && styles.iconCollapsed]}
                         />
-                        <Text style={[styles.speakerLabel, speakerMode && styles.speakerLabelActive]}>
-                            SPEAKER
-                        </Text>
-                        {speakerMode && <View style={styles.speakerIndicator} />}
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        onPress={toggleAutoplay}
-                        style={[styles.autoplayButton, autoplay && styles.autoplayButtonActive]}
-                        activeOpacity={0.7}
-                    >
-                        <FontAwesome
-                            name="play-circle"
-                            style={[styles.autoplayIcon, autoplay && styles.autoplayIconActive]}
-                        />
-                        <Text style={[styles.autoplayLabel, autoplay && styles.autoplayLabelActive]}>
-                            PLAY
-                        </Text>
-                        {autoplay && <View style={styles.autoplayIndicator} />}
                     </TouchableOpacity>
                 </View>
             )}
+            <AddFriendModal
+                visible={showAddFriendModal}
+                onClose={() => setShowAddFriendModal(false)}
+            />
             {showWaveform && (
                 <View style={styles.recordingContainer}>
                     <View style={styles.waveFormContainer}>
@@ -118,14 +188,39 @@ const RecordingPanel = ({
                     </View>
                 </View>
             )}
-            {showRecipient && (
+            {showRecipient && !isCollapsed && (
                 <View style={styles.recipientContainer}>
                     <Text style={styles.recipientLabel}>To:</Text>
-                    <View style={styles.recipientField}>
-                        <Text style={styles.recipientName}>
-                            {recipientName || "Select a Conversation"}
-                        </Text>
-                    </View>
+                    {friends.length > 0 ? (
+                        <View style={styles.dropdownContainer}>
+                            <DropdownPicker
+                                open={dropdownOpen}
+                                value={selectedFriendUid}
+                                items={friends.map((friend) => ({
+                                    label: friend.name,
+                                    value: friend.uid,
+                                }))}
+                                setOpen={setDropdownOpen}
+                                setValue={(callback) => {
+                                    const newValue = typeof callback === 'function' ? callback(selectedFriendUid) : callback;
+                                    if (newValue && onFriendSelected) {
+                                        onFriendSelected(newValue);
+                                    }
+                                }}
+                                placeholder="Select a friend"
+                                style={styles.dropdown}
+                                textStyle={styles.dropdownText}
+                                dropDownContainerStyle={styles.dropdownContainerStyle}
+                                selectedItemLabelStyle={styles.dropdownSelectedText}
+                            />
+                        </View>
+                    ) : (
+                        <View style={styles.recipientField}>
+                            <Text style={styles.recipientName}>
+                                {recipientName || "No friends yet"}
+                            </Text>
+                        </View>
+                    )}
                 </View>
             )}
             <TouchableOpacity
@@ -166,12 +261,29 @@ const Styles = (windowWidth: number) =>
         topButtonRow: {
             flexDirection: "row",
             alignItems: "center",
-            justifyContent: "flex-start",
+            justifyContent: "space-between",
             marginBottom: 15,
+            gap: 12,
+            width: "100%",
+        },
+        buttonGroup: {
+            flexDirection: "row",
+            alignItems: "center",
             gap: 10,
+            flex: 1,
+            flexShrink: 1,
+            minWidth: 0,
+        },
+        buttonCollapsed: {
+            height: 35,
+        },
+        iconCollapsed: {
+            fontSize: 14,
+            marginBottom: 2,
         },
         speakerButton: {
-            width: 90,
+            flex: 1,
+            minWidth: 70,
             height: 60,
             backgroundColor: "#E0E0E0",
             borderRadius: 8,
@@ -213,7 +325,8 @@ const Styles = (windowWidth: number) =>
             borderRadius: 2,
         },
         autoplayButton: {
-            width: 90,
+            flex: 1,
+            minWidth: 70,
             height: 60,
             backgroundColor: "#E0E0E0",
             borderRadius: 8,
@@ -253,6 +366,44 @@ const Styles = (windowWidth: number) =>
             height: 3,
             backgroundColor: "#FFF",
             borderRadius: 2,
+        },
+        addFriendButton: {
+            flex: 1,
+            minWidth: 70,
+            height: 60,
+            backgroundColor: "#E0E0E0",
+            borderRadius: 8,
+            alignItems: "center",
+            justifyContent: "center",
+            borderWidth: 1,
+            borderColor: "#B0B0B0",
+            position: "relative",
+        },
+        addFriendIcon: {
+            fontSize: 20,
+            color: "#666",
+            marginBottom: 4,
+        },
+        addFriendLabel: {
+            fontSize: 10,
+            fontWeight: "600",
+            color: "#666",
+            letterSpacing: 0.5,
+        },
+        collapseButton: {
+            width: 48,
+            height: 60,
+            backgroundColor: "#E0E0E0",
+            borderRadius: 8,
+            alignItems: "center",
+            justifyContent: "center",
+            borderWidth: 1,
+            borderColor: "#B0B0B0",
+            flexShrink: 0,
+        },
+        collapseIcon: {
+            fontSize: 20,
+            color: "#666",
         },
         recordingContainer: {
             height: 80,
@@ -339,6 +490,31 @@ const Styles = (windowWidth: number) =>
             fontWeight: "bold",
             color: "#FFF",
             letterSpacing: 1,
+        },
+        dropdownContainer: {
+            flex: 1,
+            zIndex: 1000,
+        },
+        dropdown: {
+            backgroundColor: "#FFF",
+            borderColor: "#C0C0C0",
+            borderWidth: 1,
+            borderRadius: 8,
+            minHeight: 50,
+        },
+        dropdownText: {
+            fontSize: 16,
+            color: "#333",
+        },
+        dropdownSelectedText: {
+            fontWeight: "600",
+        },
+        dropdownContainerStyle: {
+            backgroundColor: "#FFF",
+            borderColor: "#C0C0C0",
+            borderWidth: 1,
+            borderRadius: 8,
+            marginTop: 2,
         },
     });
 
