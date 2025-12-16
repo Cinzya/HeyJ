@@ -74,7 +74,7 @@ export const sendMessage = async (
       .getPublicUrl(uploadData.path).data.publicUrl;
     console.log("✅ Public URL:", url);
 
-    const message = new Message(messageId, new Date(), profile.uid, url);
+    const message = new Message(messageId, new Date(), profile.uid, url, false);
 
     console.log("💾 Inserting message into database...");
     const { data: messageData, error: messageError } = await supabase

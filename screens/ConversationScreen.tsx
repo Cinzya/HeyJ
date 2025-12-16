@@ -9,7 +9,9 @@ import {
   Easing,
   useWindowDimensions,
   DimensionValue,
+  Platform,
 } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useProfile } from "../utilities/ProfileProvider";
 import { groupBy, sortBy } from "lodash";
 import Conversation from "../objects/Conversation";
@@ -18,8 +20,8 @@ import { format, isToday, isYesterday, isThisWeek } from "date-fns";
 import Message from "../objects/Message";
 import Profile from "../objects/Profile";
 import { useNavigation } from "@react-navigation/native";
-import { 
-  useAudioRecorder, 
+import {
+  useAudioRecorder,
   useAudioRecorderState,
   AudioModule,
   setAudioModeAsync,
@@ -36,6 +38,7 @@ const ConversationScreen = ({ route }: { route: any }) => {
   const navigation = useNavigation();
   const conversationId = route.params.conversationId;
   const { profile, conversations, profiles } = useProfile();
+  const insets = useSafeAreaInsets();
 
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [sortedMessages, setSortedMessages] = useState<
@@ -114,7 +117,7 @@ const ConversationScreen = ({ route }: { route: any }) => {
     (async () => {
       const status = await AudioModule.requestRecordingPermissionsAsync();
       setRecordingAllowed(status.status);
-      
+
       if (status.granted) {
         // Configure audio mode for recording
         await setAudioModeAsync({
@@ -143,7 +146,7 @@ const ConversationScreen = ({ route }: { route: any }) => {
 
   const startRecording = async () => {
     console.log("🎤 startRecording called");
-    
+
     if (recordingAllowed !== "granted") {
       console.log("⚠️ Permissions not granted, requesting...");
       const status = await AudioModule.requestRecordingPermissionsAsync();
@@ -219,7 +222,7 @@ const ConversationScreen = ({ route }: { route: any }) => {
     console.log("🛑 ========== stopRecording CALLED ==========");
     console.log("   recorderState.isRecording:", recorderState.isRecording);
     console.log("   isProcessingRecording:", isProcessingRecording.current);
-    
+
     // If already processing, don't process again
     if (isProcessingRecording.current) {
       console.log("⚠️ Already processing a recording, skipping");
@@ -248,18 +251,18 @@ const ConversationScreen = ({ route }: { route: any }) => {
 
     try {
       console.log("🛑 Stopping recording...");
-      
+
       // Stop the recorder - the URI will be available on audioRecorder.uri after stopping
       await audioRecorder.stop();
-      
+
       console.log("✅ Recording stopped");
-      
+
       // The recording URI should be available immediately after stop()
       // According to docs: "The recording will be available on audioRecorder.uri"
       const uri = audioRecorder.uri;
-      
+
       console.log("📁 Recording URI:", uri);
-      
+
       if (uri) {
         console.log("📤 Sending message with URI:", uri);
         await sendMessage(
@@ -270,7 +273,7 @@ const ConversationScreen = ({ route }: { route: any }) => {
         );
         console.log("✅ Message send completed");
       } else {
-        console.error("❌ No audio URI after stopping recording after", attempts, "attempts");
+        console.error("❌ No audio URI after stopping recording");
         console.error("   audioRecorder state:", {
           isRecording: audioRecorder.isRecording,
           uri: audioRecorder.uri,
@@ -281,7 +284,7 @@ const ConversationScreen = ({ route }: { route: any }) => {
     } finally {
       // Reset processing flag
       isProcessingRecording.current = false;
-      
+
       // Reset UI
       setLoudness(Array.from({ length: 20 }, () => 15));
 
@@ -316,7 +319,7 @@ const ConversationScreen = ({ route }: { route: any }) => {
     }
   };
 
-  const styles = Styles(width, height, radius);
+  const styles = Styles(width, height, radius, insets);
 
   const [currentUri, setCurrentUri] = useState("");
 
@@ -333,6 +336,9 @@ const ConversationScreen = ({ route }: { route: any }) => {
               uri={message.audioUrl}
               currentUri={currentUri}
               setCurrentUri={setCurrentUri}
+              messageId={message.messageId}
+              senderUid={message.uid}
+              currentUserUid={profile!.uid}
             />
           </View>
         </View>
@@ -345,6 +351,9 @@ const ConversationScreen = ({ route }: { route: any }) => {
               uri={message.audioUrl}
               currentUri={currentUri}
               setCurrentUri={setCurrentUri}
+              messageId={message.messageId}
+              senderUid={message.uid}
+              currentUserUid={profile!.uid}
             />
           </View>
           <Image
@@ -430,6 +439,7 @@ const ConversationScreen = ({ route }: { route: any }) => {
         keyExtractor={(item) => item.title}
         renderItem={({ item }) => renderSection(item)}
         contentContainerStyle={styles.listContainer}
+        contentInsetAdjustmentBehavior="automatic"
         onContentSizeChange={() => {
           if (flatListRef.current) {
             flatListRef.current.scrollToEnd({ animated: false });
@@ -492,19 +502,22 @@ const formatDate = (timestamp: Date) => {
 const Styles = (
   buttonWidth: number,
   buttonHeight: number,
-  buttonRadius: number
+  buttonRadius: number,
+  insets: { top: number; bottom: number; left: number; right: number }
 ) =>
   StyleSheet.create({
     container: {
       flex: 1,
     },
     listContainer: {
-      paddingTop: 175,
+      paddingTop: Platform.OS === 'ios' ? insets.top + 50 : 175,
+      paddingBottom: 100,
       justifyContent: "flex-end",
-      bottom: 160,
     },
     date: {
       alignSelf: "center",
+      marginTop: Platform.OS === 'ios' ? 10 : 0,
+      marginBottom: 5,
     },
     incomingContainer: {
       width: "100%",

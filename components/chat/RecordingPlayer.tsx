@@ -11,19 +11,27 @@ import {
 } from "expo-audio";
 import { documentDirectory, createDownloadResumable } from "expo-file-system/legacy";
 import UUID from "react-native-uuid";
+import { markMessageAsRead } from "../../utilities/MarkMessageAsRead";
 
 const RecordingPlayer = ({
   uri,
   currentUri,
   setCurrentUri,
+  messageId,
+  senderUid,
+  currentUserUid,
 }: {
   uri: string;
   currentUri: string;
   setCurrentUri: any;
+  messageId: string;
+  senderUid: string;
+  currentUserUid: string;
 }) => {
   const [file, setFile] = useState<string | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(false);
   const [isReady, setIsReady] = useState(false);
+  const hasMarkedAsRead = useRef(false);
 
   // Initialize player - will be set when file loads
   // Use a placeholder that won't cause errors
@@ -33,10 +41,19 @@ const RecordingPlayer = ({
   const [duration, setDuration] = useState<number | null>(0);
   const [position, setPosition] = useState(0);
 
+  const handlePlayStart = () => {
+    // Only mark as read if recipient is playing (not the sender)
+    if (!hasMarkedAsRead.current && currentUserUid !== senderUid) {
+      markMessageAsRead(messageId);
+      hasMarkedAsRead.current = true;
+    }
+  };
+
   const loadAudio = async (shouldPlay: boolean = false) => {
     if (isLoading || file) {
       // If already loaded and should play, play it
       if (shouldPlay && isReady && file && currentUri === uri) {
+        handlePlayStart();
         audioPlayer.play();
       }
       return; // Already loading or loaded
@@ -97,6 +114,7 @@ const RecordingPlayer = ({
               console.error("Error setting audio mode for playback:", error);
             }
           }
+          handlePlayStart();
           audioPlayer.play();
         }
       } else {
@@ -149,6 +167,8 @@ const RecordingPlayer = ({
         audioPlayer.pause();
         setPosition(0);
       }
+      // Reset the marked as read flag when switching to a different message
+      hasMarkedAsRead.current = false;
     }
   }, [currentUri, uri, playerStatus.playing]);
 
@@ -199,10 +219,13 @@ const RecordingPlayer = ({
     // If this is not the current playing audio, switch to it
     if (currentUri !== uri) {
       setCurrentUri(uri);
+      // Reset the marked as read flag when switching to a different message
+      hasMarkedAsRead.current = false;
       // If audio is already loaded and ready, play immediately
       if (isReady && file) {
         // Small delay to ensure player is ready (especially on iOS)
         await new Promise(resolve => setTimeout(resolve, 100));
+        handlePlayStart();
         audioPlayer.play();
         return;
       }
@@ -225,6 +248,7 @@ const RecordingPlayer = ({
       audioPlayer.pause();
     } else {
       if (isReady && file) {
+        handlePlayStart();
         audioPlayer.play();
       }
     }
