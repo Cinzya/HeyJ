@@ -52,14 +52,14 @@ const CreateProfileModal = () => {
 
   const getProfilePic = async () => {
     console.log("📸 CreateProfileModal: Profile picture button pressed");
-    
+
     const { status } = await requestMediaLibraryPermissionsAsync();
     console.log("📸 CreateProfileModal: Permission status:", status);
-    
+
     if (status === "granted") {
       console.log("📸 CreateProfileModal: Opening image picker...");
       const newPic = await launchImageLibraryAsync({
-        mediaTypes: MediaType.Images,
+        mediaTypes: ["images"],
         allowsMultipleSelection: false,
         allowsEditing: true,
         aspect: [1, 1],
@@ -133,7 +133,7 @@ const CreateProfileModal = () => {
     if (name.trim() !== "") {
       // Generate a unique user code
       const userCode = `${name.replace(/\s+/g, '')}@${Math.floor(Math.random() * 9999)}`;
-      
+
       if (selectedProfileImage) {
         const publicUri = await uploadProfilePic();
         saveProfile(

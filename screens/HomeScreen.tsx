@@ -15,6 +15,8 @@ import {
   useAudioRecorder,
   RecordingOptions,
   AudioModule,
+  RecordingPresets,
+  useAudioRecorderState,
 } from "expo-audio";
 import { useEffect, useRef, useState } from "react";
 // @ts-expect-error
@@ -65,7 +67,9 @@ const HomeScreen = () => {
     },
   };
 
-  const audioRecorder = useAudioRecorder(recordingOptions);
+
+  const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const recorderState = useAudioRecorderState(audioRecorder);
   const [recordingAllowed, setRecordingAllowed] = useState("denied");
   const [loudness, setLoudness] = useState<Number[]>(
     Array.from({ length: 20 }, () => 15)
@@ -103,7 +107,7 @@ const HomeScreen = () => {
   }, [profile, profiles]);
 
   useEffect(() => {
-    navigation.addListener("blur", (event) => {});
+    navigation.addListener("blur", (event) => { });
 
     requestPermissions();
 
@@ -141,6 +145,8 @@ const HomeScreen = () => {
     }
 
     try {
+      console.log("🎤 Preparing to record...");
+      await audioRecorder.prepareToRecordAsync();
       console.log("🎤 Starting recording...");
       await audioRecorder.record();
       console.log("✅ Recording started");
@@ -193,6 +199,7 @@ const HomeScreen = () => {
   }, [audioRecorder.isRecording]);
 
   const stopRecording = async () => {
+    console.log(selectedConversation, audioRecorder.isRecording)
     if (!selectedConversation || !audioRecorder.isRecording) {
       return;
     }

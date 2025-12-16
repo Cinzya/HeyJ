@@ -18,7 +18,13 @@ import { format, isToday, isYesterday, isThisWeek } from "date-fns";
 import Message from "../objects/Message";
 import Profile from "../objects/Profile";
 import { useNavigation } from "@react-navigation/native";
-import { useAudioRecorder, AudioModule } from "expo-audio";
+import { 
+  useAudioRecorder, 
+  useAudioRecorderState,
+  AudioModule,
+  setAudioModeAsync,
+  RecordingPresets
+} from "expo-audio";
 import RecordingPlayer from "../components/chat/RecordingPlayer";
 // @ts-expect-error
 import { FontAwesome } from "react-native-vector-icons";
@@ -69,7 +75,7 @@ const ConversationScreen = ({ route }: { route: any }) => {
 
   useEffect(() => {
     getSortedMessages();
-  }, [conversationId, conversation, profile, profiles]);
+  }, [conversationId, conversations, profile, profiles]);
 
   useEffect(() => {
     navigation.setOptions({
@@ -85,32 +91,9 @@ const ConversationScreen = ({ route }: { route: any }) => {
     });
   }, [otherProfile]);
 
-  const audioRecorder = useAudioRecorder({
-    extension: '.m4a',
-    sampleRate: 44100,
-    numberOfChannels: 2,
-    bitRate: 128000,
-    android: {
-      extension: '.m4a',
-      outputFormat: 'mpeg4',
-      audioEncoder: 'aac',
-      sampleRate: 44100,
-    },
-    ios: {
-      extension: '.m4a',
-      audioQuality: 127,
-      sampleRate: 44100,
-      linearPCMBitDepth: 16,
-      linearPCMIsBigEndian: false,
-      linearPCMIsFloat: false,
-    },
-    web: {
-      mimeType: 'audio/webm',
-      bitsPerSecond: 128000,
-    },
-  });
+  const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const recorderState = useAudioRecorderState(audioRecorder);
   const [recordingAllowed, setRecordingAllowed] = useState("denied");
-  const [isRecording, setIsRecording] = useState(false);
   const [loudness, setLoudness] = useState<Number[]>(
     Array.from({ length: 20 }, () => 15)
   );
@@ -123,8 +106,23 @@ const ConversationScreen = ({ route }: { route: any }) => {
   const [height, setHeight] = useState(45);
   const [radius, setRadius] = useState(45);
 
+  // Track if we're currently processing a recording to prevent race conditions
+  const isProcessingRecording = useRef(false);
+
   useEffect(() => {
-    requestPermissions();
+    // Request permissions and set up audio mode
+    (async () => {
+      const status = await AudioModule.requestRecordingPermissionsAsync();
+      setRecordingAllowed(status.status);
+      
+      if (status.granted) {
+        // Configure audio mode for recording
+        await setAudioModeAsync({
+          playsInSilentMode: true,
+          allowsRecording: true,
+        });
+      }
+    })();
 
     const widthListener = animatedWidth.addListener(({ value }) =>
       setWidth(value)
@@ -141,22 +139,36 @@ const ConversationScreen = ({ route }: { route: any }) => {
       animatedHeight.removeListener(heightListener);
       animatedRadius.removeListener(radiusListener);
     };
-  });
-
-  const requestPermissions = async () => {
-    const response = await AudioModule.requestRecordingPermissionsAsync();
-    setRecordingAllowed(response.status);
-  };
+  }, []);
 
   const startRecording = async () => {
+    console.log("🎤 startRecording called");
+    
     if (recordingAllowed !== "granted") {
-      requestPermissions();
+      console.log("⚠️ Permissions not granted, requesting...");
+      const status = await AudioModule.requestRecordingPermissionsAsync();
+      setRecordingAllowed(status.status);
+      if (status.status !== "granted") {
+        return;
+      }
+    }
+
+    if (recorderState.isRecording) {
+      console.log("⚠️ Already recording, skipping start");
+      return;
+    }
+
+    if (isProcessingRecording.current) {
+      console.log("⚠️ Currently processing a recording, skipping start");
       return;
     }
 
     try {
-      await audioRecorder.record();
-      setIsRecording(true);
+      console.log("🎤 Preparing to record...");
+      await audioRecorder.prepareToRecordAsync();
+      console.log("🎤 Starting recording...");
+      audioRecorder.record();
+      console.log("✅ Recording started, recorderState.isRecording:", recorderState.isRecording);
 
       const widthAnimation = Animated.timing(animatedWidth, {
         toValue: 30,
@@ -187,13 +199,13 @@ const ConversationScreen = ({ route }: { route: any }) => {
 
       parallelAnimation.start();
     } catch (error) {
-      console.error("Error starting recording:", error);
+      console.error("❌ Error starting recording:", error);
     }
   };
 
   // Monitor recording for waveform visualization
   useEffect(() => {
-    if (isRecording) {
+    if (recorderState.isRecording) {
       const interval = setInterval(() => {
         const randomLoudness = Math.random() * 60 + 15;
         setLoudness((prevLoudness) => [...prevLoudness.slice(-19), randomLoudness]);
@@ -201,28 +213,76 @@ const ConversationScreen = ({ route }: { route: any }) => {
 
       return () => clearInterval(interval);
     }
-  }, [isRecording]);
+  }, [recorderState.isRecording]);
 
   const stopRecording = async () => {
-    if (!audioRecorder.isRecording) {
+    console.log("🛑 ========== stopRecording CALLED ==========");
+    console.log("   recorderState.isRecording:", recorderState.isRecording);
+    console.log("   isProcessingRecording:", isProcessingRecording.current);
+    
+    // If already processing, don't process again
+    if (isProcessingRecording.current) {
+      console.log("⚠️ Already processing a recording, skipping");
       return;
     }
 
+    // Check if we're actually recording using the recorder state
+    if (!recorderState.isRecording) {
+      console.log("⚠️ Not recording according to recorderState, aborting");
+      return;
+    }
+
+    // Validate prerequisites
+    if (!profile) {
+      console.error("❌ No profile available");
+      return;
+    }
+
+    if (!conversationId) {
+      console.error("❌ No conversation ID");
+      return;
+    }
+
+    // Mark as processing to prevent duplicate calls
+    isProcessingRecording.current = true;
+
     try {
-      await audioRecorder.stop();
-      setIsRecording(false);
+      console.log("🛑 Stopping recording...");
       
-      if (audioRecorder.uri) {
+      // Stop the recorder - the URI will be available on audioRecorder.uri after stopping
+      await audioRecorder.stop();
+      
+      console.log("✅ Recording stopped");
+      
+      // The recording URI should be available immediately after stop()
+      // According to docs: "The recording will be available on audioRecorder.uri"
+      const uri = audioRecorder.uri;
+      
+      console.log("📁 Recording URI:", uri);
+      
+      if (uri) {
+        console.log("📤 Sending message with URI:", uri);
         await sendMessage(
           navigation,
           { profile, conversations },
-          audioRecorder.uri,
+          uri,
           conversationId
         );
+        console.log("✅ Message send completed");
+      } else {
+        console.error("❌ No audio URI after stopping recording after", attempts, "attempts");
+        console.error("   audioRecorder state:", {
+          isRecording: audioRecorder.isRecording,
+          uri: audioRecorder.uri,
+        });
       }
     } catch (error) {
-      console.error("Error stopping recording:", error);
+      console.error("❌ Error stopping recording:", error);
     } finally {
+      // Reset processing flag
+      isProcessingRecording.current = false;
+      
+      // Reset UI
       setLoudness(Array.from({ length: 20 }, () => 15));
 
       const widthAnimation = Animated.timing(animatedWidth, {
@@ -389,9 +449,22 @@ const ConversationScreen = ({ route }: { route: any }) => {
           <View style={styles.waveContainer}>{renderRightWaves()}</View>
         </View>
         <TouchableOpacity
-          onPressIn={startRecording}
-          onPressOut={stopRecording}
+          onPressIn={() => {
+            console.log("🔘 Button pressed down - starting recording");
+            startRecording();
+          }}
+          onPressOut={async () => {
+            console.log("🔘 Button released - stopping recording");
+            console.log("   Current state before stop:", {
+              recorderStateIsRecording: recorderState.isRecording,
+              isProcessing: isProcessingRecording.current
+            });
+            await stopRecording();
+            console.log("🔘 Button release handler completed");
+          }}
+          activeOpacity={0.7}
           style={styles.buttonOutline}
+          disabled={isProcessingRecording.current || recorderState.isRecording === undefined}
         >
           <View style={styles.button}>
             <FontAwesome name="microphone" style={styles.microphone} />
@@ -553,3 +626,4 @@ const Styles = (
       color: "#FFF",
     },
   });
+

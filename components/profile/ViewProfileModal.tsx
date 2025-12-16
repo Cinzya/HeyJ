@@ -49,7 +49,7 @@ const ViewProfileModal = () => {
     const { status } = await requestMediaLibraryPermissionsAsync();
     if (status === "granted") {
       const newPic = await launchImageLibraryAsync({
-        mediaTypes: MediaType.Images,
+        mediaTypes: ["images"],
         allowsMultipleSelection: false,
         allowsEditing: true,
         aspect: [1, 1],
@@ -148,7 +148,7 @@ const ViewProfileModal = () => {
 
     // Trim and normalize the input
     const trimmedCode = friendCode.trim();
-    
+
     if (!trimmedCode) {
       Alert.alert("Error", "Please enter a friend code.");
       return;
@@ -165,7 +165,7 @@ const ViewProfileModal = () => {
       console.log("🔍 Searching for userCode (case-insensitive):", trimmedCode);
       console.log("🔍 Normalized search code:", searchCodeLower);
       console.log("🔍 Current user's code:", profile.userCode);
-      
+
       let data = null;
       let error = null;
 
@@ -174,21 +174,21 @@ const ViewProfileModal = () => {
       const { data: allData, error: allError } = await supabase
         .from("profiles")
         .select("userCode,uid,name,email,profilePicture,conversations");
-      
+
       if (allError) {
         error = allError;
         console.error("❌ Database error:", allError);
       } else if (allData) {
         console.log(`🔍 Fetched ${allData.length} profiles from database`);
-        
+
         // Filter out profiles without userCode and log them
         const profilesWithCode = allData.filter(p => p.userCode);
         const profilesWithoutCode = allData.filter(p => !p.userCode);
-        
+
         if (profilesWithoutCode.length > 0) {
           console.log(`⚠️ Found ${profilesWithoutCode.length} profiles without userCode`);
         }
-        
+
         // Case-insensitive search: find user where userCode matches (case-insensitive)
         // Also trim userCode from database in case there's whitespace
         const foundUser = profilesWithCode.find(
@@ -201,7 +201,7 @@ const ViewProfileModal = () => {
             return match;
           }
         );
-        
+
         if (foundUser) {
           data = foundUser;
           console.log("✅ Found user:", foundUser.name, "with code:", foundUser.userCode);
@@ -219,8 +219,8 @@ const ViewProfileModal = () => {
         console.log("⚠️ No data returned from database");
       }
 
-      console.log("🔍 Final search result:", { 
-        found: !!data, 
+      console.log("🔍 Final search result:", {
+        found: !!data,
         error: error?.message,
         searchedCode: trimmedCode,
         normalizedSearch: searchCodeLower,
@@ -286,25 +286,46 @@ const ViewProfileModal = () => {
           .insert(conversation.toJSON());
 
         if (!insertError) {
+          // Ensure conversations arrays are always arrays
+          const otherConversations = Array.isArray(otherProfile.conversations)
+            ? otherProfile.conversations
+            : [];
+          const currentConversations = Array.isArray(profile.conversations)
+            ? profile.conversations
+            : [];
+
+          // Update other user's profile
           const { error: e1 } = await supabase.from("profiles").upsert({
             ...otherProfile,
-            conversations: [...otherProfile.conversations, conversationId],
+            conversations: [...otherConversations, conversationId],
           });
 
+          // Update current user's profile
           const { error: e2 } = await supabase.from("profiles").upsert({
             ...profile.toJSON(),
-            conversations: [
-              ...profile.toJSON().conversations,
-              conversationId,
-            ],
+            conversations: [...currentConversations, conversationId],
           });
 
+          if (e1) {
+            console.error("Error updating other profile:", e1);
+          }
+          if (e2) {
+            console.error("Error updating current profile:", e2);
+          }
+
           if (!e1 && !e2) {
+            // Refresh profile to get updated conversations
+            await new Promise(resolve => setTimeout(resolve, 100)); // Small delay to ensure DB is updated
             getProfile();
             Alert.alert("Success!", `You can now chat with ${otherProfile.name}!`, [
               { text: "OK", onPress: () => setViewProfile(false) }
             ]);
+          } else {
+            Alert.alert("Error", "Failed to update profiles. Please try again.");
           }
+        } else {
+          console.error("Error creating conversation:", insertError);
+          Alert.alert("Error", "Failed to create conversation. Please try again.");
         }
       } else {
         Alert.alert("Already Connected", `You already have a conversation with ${otherProfile.name}.`);
@@ -334,7 +355,7 @@ const ViewProfileModal = () => {
           <TouchableWithoutFeedback style={styles.modal}>
             <View style={styles.modalSheet}>
               <Text style={styles.modalTitle}>Profile Details</Text>
-              
+
               <TouchableOpacity onPress={getProfilePic}>
                 <Image
                   style={styles.image}
@@ -350,13 +371,13 @@ const ViewProfileModal = () => {
                   />
                 </View>
               </TouchableOpacity>
-              
+
               <Text style={styles.labelText}>
                 {profile?.name || "---"}
               </Text>
-              
+
               {/* User Code Display */}
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.userCodeContainer}
                 onPress={copyUserCode}
               >
@@ -365,9 +386,9 @@ const ViewProfileModal = () => {
                 <Ionicons name="copy-outline" size={20} color="#666" />
               </TouchableOpacity>
               <Text style={styles.hintText}>Tap to copy</Text>
-              
+
               <View style={styles.divider} />
-              
+
               {/* Add Friend Section */}
               {!showAddFriend ? (
                 <TouchableOpacity
@@ -407,7 +428,7 @@ const ViewProfileModal = () => {
                   </View>
                 </View>
               )}
-              
+
               <TouchableOpacity
                 style={styles.saveButton}
                 onPress={() => {

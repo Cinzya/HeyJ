@@ -58,7 +58,7 @@ const SignupScreen = ({ navigation }: { navigation: any }) => {
     };
 
     const metRequirements = Object.values(requirements).filter(Boolean).length;
-    
+
     let score = 0;
     let label = "Very Weak";
     let color = "#ff4444";
@@ -91,16 +91,16 @@ const SignupScreen = ({ navigation }: { navigation: any }) => {
 
   const getProfilePic = async () => {
     console.log("📸 Profile picture button pressed");
-    
+
     try {
       console.log("📸 Requesting media library permissions...");
       const { status } = await requestMediaLibraryPermissionsAsync();
       console.log("📸 Permission status:", status);
-      
+
       if (status === "granted") {
         console.log("📸 Opening image picker...");
         const result = await launchImageLibraryAsync({
-          mediaTypes: MediaType.Images,
+          mediaTypes: ["images"],
           allowsMultipleSelection: false,
           allowsEditing: true,
           aspect: [1, 1],
@@ -202,7 +202,7 @@ const SignupScreen = ({ navigation }: { navigation: any }) => {
         name: fullName.trim(),
         profilePicture: defaultProfileImage,
       });
-      
+
       if (!result.user) {
         throw new Error("Failed to create user account");
       }
@@ -221,7 +221,7 @@ const SignupScreen = ({ navigation }: { navigation: any }) => {
 
       // Generate userCode for the new profile
       const userCode = `${fullName.trim().replace(/\s+/g, '')}@${Math.floor(Math.random() * 9999)}`;
-      
+
       // Create the profile manually (in case trigger doesn't exist or fails)
       console.log("🎯 SignupScreen: Inserting profile into database...");
       const { error: profileError } = await supabase
@@ -239,7 +239,7 @@ const SignupScreen = ({ navigation }: { navigation: any }) => {
         // Check if it's a duplicate key error (trigger already created it)
         if (profileError.code === '23505') {
           console.log("🎯 SignupScreen: Profile already exists (created by trigger)");
-          
+
           // If we have a custom image or need to set userCode, update the profile
           const updateData: any = {};
           if (profileImage && profilePictureUrl !== defaultProfileImage) {
@@ -248,7 +248,7 @@ const SignupScreen = ({ navigation }: { navigation: any }) => {
           // Generate userCode if it doesn't exist (in case trigger created profile without it)
           const userCode = `${fullName.trim().replace(/\s+/g, '')}@${Math.floor(Math.random() * 9999)}`;
           updateData.userCode = userCode;
-          
+
           if (Object.keys(updateData).length > 0) {
             const { error: updateError } = await supabase
               .from("profiles")
@@ -277,7 +277,7 @@ const SignupScreen = ({ navigation }: { navigation: any }) => {
           [
             {
               text: "OK",
-              onPress: () => {},
+              onPress: () => { },
             },
           ]
         );
@@ -286,7 +286,7 @@ const SignupScreen = ({ navigation }: { navigation: any }) => {
         Alert.alert("Success", "Account created successfully!", [
           {
             text: "OK",
-            onPress: () => {},
+            onPress: () => { },
           },
         ]);
       }
