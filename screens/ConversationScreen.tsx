@@ -1,43 +1,28 @@
 import {
   View,
-  StyleSheet,
   Text,
-  TouchableOpacity,
   FlatList,
-  Image,
-  Animated,
-  Easing,
-  useWindowDimensions,
-  DimensionValue,
   Platform,
 } from "react-native";
+import { createStyles as createConversationScreenStyles } from "../styles/ConversationScreen.styles";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useProfile } from "../utilities/ProfileProvider";
 import { groupBy, sortBy } from "lodash";
 import Conversation from "../objects/Conversation";
 import { useEffect, useRef, useState, useCallback } from "react";
-import { format, isToday, isYesterday, isThisWeek } from "date-fns";
 import Message from "../objects/Message";
 import Profile from "../objects/Profile";
 import { useNavigation } from "@react-navigation/native";
-import {
-  useAudioRecorder,
-  useAudioRecorderState,
-  AudioModule,
-  setAudioModeAsync,
-  RecordingPresets
-} from "expo-audio";
 import RecordingPlayer from "../components/chat/RecordingPlayer";
 import RecordingPanel from "../components/chat/RecordingPanel";
-// @ts-expect-error
-import { FontAwesome } from "react-native-vector-icons";
 import { HeaderBackButton } from "@react-navigation/elements";
 import { sendMessage } from "../utilities/SendMessage";
 import { updateLastRead } from "../utilities/UpdateConversation";
 import { useAudioSettings } from "../utilities/AudioSettingsProvider";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import { documentDirectory, createDownloadResumable } from "expo-file-system/legacy";
-import UUID from "react-native-uuid";
+import { useAudioRecording } from "../hooks/useAudioRecording";
+import { formatDate } from "../utilities/dateUtils";
 
 const ConversationScreen = ({ route }: { route: any }) => {
   const navigation = useNavigation();
@@ -102,232 +87,27 @@ const ConversationScreen = ({ route }: { route: any }) => {
     });
   }, [otherProfile]);
 
-  const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
-  const recorderState = useAudioRecorderState(audioRecorder);
-  const [recordingAllowed, setRecordingAllowed] = useState("denied");
-  const [loudness, setLoudness] = useState<Number[]>(
-    Array.from({ length: 20 }, () => 15)
-  );
-
-  const animatedWidth = useRef(new Animated.Value(45)).current;
-  const animatedHeight = useRef(new Animated.Value(45)).current;
-  const animatedRadius = useRef(new Animated.Value(45)).current;
-
-  const [width, setWidth] = useState(45);
-  const [height, setHeight] = useState(45);
-  const [radius, setRadius] = useState(45);
-
-  // Track if we're currently processing a recording to prevent race conditions
-  const isProcessingRecording = useRef(false);
-
-  useEffect(() => {
-    // Request permissions and set up audio mode
-    (async () => {
-      const status = await AudioModule.requestRecordingPermissionsAsync();
-      setRecordingAllowed(status.status);
-
-      if (status.granted) {
-        // Configure audio mode for recording
-        await setAudioModeAsync({
-          playsInSilentMode: true,
-          allowsRecording: true,
-        });
-      }
-    })();
-
-    const widthListener = animatedWidth.addListener(({ value }) =>
-      setWidth(value)
-    );
-    const heightListener = animatedHeight.addListener(({ value }) =>
-      setHeight(value)
-    );
-    const radiusListener = animatedRadius.addListener(({ value }) =>
-      setRadius(value)
-    );
-
-    return () => {
-      animatedWidth.removeListener(widthListener);
-      animatedHeight.removeListener(heightListener);
-      animatedRadius.removeListener(radiusListener);
-    };
-  }, []);
-
-  const startRecording = async () => {
-    console.log("🎤 startRecording called");
-
-    if (recordingAllowed !== "granted") {
-      console.log("⚠️ Permissions not granted, requesting...");
-      const status = await AudioModule.requestRecordingPermissionsAsync();
-      setRecordingAllowed(status.status);
-      if (status.status !== "granted") {
-        return;
-      }
-    }
-
-    if (recorderState.isRecording) {
-      console.log("⚠️ Already recording, skipping start");
-      return;
-    }
-
-    if (isProcessingRecording.current) {
-      console.log("⚠️ Currently processing a recording, skipping start");
-      return;
-    }
-
-    try {
-      console.log("🎤 Preparing to record...");
-      await audioRecorder.prepareToRecordAsync();
-      console.log("🎤 Starting recording...");
-      audioRecorder.record();
-      console.log("✅ Recording started, recorderState.isRecording:", recorderState.isRecording);
-
-      const widthAnimation = Animated.timing(animatedWidth, {
-        toValue: 30,
-        duration: 100,
-        easing: Easing.linear,
-        useNativeDriver: false,
-      });
-
-      const heightAnimation = Animated.timing(animatedHeight, {
-        toValue: 30,
-        duration: 100,
-        easing: Easing.linear,
-        useNativeDriver: false,
-      });
-
-      const radiusAnimation = Animated.timing(animatedRadius, {
-        toValue: 10,
-        duration: 100,
-        easing: Easing.linear,
-        useNativeDriver: false,
-      });
-
-      const parallelAnimation = Animated.parallel([
-        widthAnimation,
-        heightAnimation,
-        radiusAnimation,
-      ]);
-
-      parallelAnimation.start();
-    } catch (error) {
-      console.error("❌ Error starting recording:", error);
-    }
-  };
-
-  // Monitor recording for waveform visualization
-  useEffect(() => {
-    if (recorderState.isRecording) {
-      const interval = setInterval(() => {
-        const randomLoudness = Math.random() * 60 + 15;
-        setLoudness((prevLoudness) => [...prevLoudness.slice(-19), randomLoudness]);
-      }, 100);
-
-      return () => clearInterval(interval);
-    }
-  }, [recorderState.isRecording]);
-
-  const stopRecording = async () => {
-    console.log("🛑 ========== stopRecording CALLED ==========");
-    console.log("   recorderState.isRecording:", recorderState.isRecording);
-    console.log("   isProcessingRecording:", isProcessingRecording.current);
-
-    // If already processing, don't process again
-    if (isProcessingRecording.current) {
-      console.log("⚠️ Already processing a recording, skipping");
-      return;
-    }
-
-    // Check if we're actually recording using the recorder state
-    if (!recorderState.isRecording) {
-      console.log("⚠️ Not recording according to recorderState, aborting");
-      return;
-    }
-
-    // Validate prerequisites
-    if (!profile) {
-      console.error("❌ No profile available");
-      return;
-    }
-
-    if (!conversationId) {
-      console.error("❌ No conversation ID");
-      return;
-    }
-
-    // Mark as processing to prevent duplicate calls
-    isProcessingRecording.current = true;
-
-    try {
-      console.log("🛑 Stopping recording...");
-
-      // Stop the recorder - the URI will be available on audioRecorder.uri after stopping
-      await audioRecorder.stop();
-
-      console.log("✅ Recording stopped");
-
-      // The recording URI should be available immediately after stop()
-      // According to docs: "The recording will be available on audioRecorder.uri"
-      const uri = audioRecorder.uri;
-
-      console.log("📁 Recording URI:", uri);
-
-      if (uri) {
-        console.log("📤 Sending message with URI:", uri);
+  const {
+    width,
+    height,
+    radius,
+    startRecording,
+    stopRecording: stopRecordingHook,
+  } = useAudioRecording({
+    conversationId,
+    onStopRecording: async (uri: string) => {
+      if (profile && conversationId) {
         await sendMessage(
           navigation,
           { profile, conversations },
           uri,
           conversationId
         );
-        console.log("✅ Message send completed");
-      } else {
-        console.error("❌ No audio URI after stopping recording");
-        console.error("   audioRecorder state:", {
-          isRecording: audioRecorder.isRecording,
-          uri: audioRecorder.uri,
-        });
       }
-    } catch (error) {
-      console.error("❌ Error stopping recording:", error);
-    } finally {
-      // Reset processing flag
-      isProcessingRecording.current = false;
+    },
+  });
 
-      // Reset UI
-      setLoudness(Array.from({ length: 20 }, () => 15));
-
-      const widthAnimation = Animated.timing(animatedWidth, {
-        toValue: 45,
-        duration: 100,
-        easing: Easing.linear,
-        useNativeDriver: false,
-      });
-
-      const heightAnimation = Animated.timing(animatedHeight, {
-        toValue: 45,
-        duration: 100,
-        easing: Easing.linear,
-        useNativeDriver: false,
-      });
-
-      const radiusAnimation = Animated.timing(animatedRadius, {
-        toValue: 50,
-        duration: 100,
-        easing: Easing.linear,
-        useNativeDriver: false,
-      });
-
-      const parallelAnimation = Animated.parallel([
-        widthAnimation,
-        heightAnimation,
-        radiusAnimation,
-      ]);
-
-      parallelAnimation.start();
-    }
-  };
-
-  const styles = Styles(width, height, radius, insets);
+  const styles = createConversationScreenStyles(width, height, radius, insets);
 
   const [currentUri, setCurrentUri] = useState("");
   const [isAutoPlaying, setIsAutoPlaying] = useState(false);
@@ -582,7 +362,7 @@ const ConversationScreen = ({ route }: { route: any }) => {
       />
       <RecordingPanel
         onPressIn={startRecording}
-        onPressOut={stopRecording}
+        onPressOut={stopRecordingHook}
         showTopButtons={true}
         showRecipient={true}
         recipientName={otherProfile?.name || "Select a Conversation"}
@@ -593,36 +373,4 @@ const ConversationScreen = ({ route }: { route: any }) => {
 
 export default ConversationScreen;
 
-const formatDate = (timestamp: Date) => {
-  if (isToday(timestamp)) {
-    return "Today " + format(timestamp, "h:mm a");
-  } else if (isYesterday(timestamp)) {
-    return "Yesterday " + format(timestamp, "h:mm a");
-  } else if (isThisWeek(timestamp)) {
-    return format(timestamp, "EEEE");
-  } else {
-    return format(timestamp, "MM/dd/yyyy");
-  }
-};
-
-const Styles = (
-  buttonWidth: number,
-  buttonHeight: number,
-  buttonRadius: number,
-  insets: { top: number; bottom: number; left: number; right: number }
-) =>
-  StyleSheet.create({
-    container: {
-      flex: 1,
-    },
-    listContainer: {
-      paddingTop: Platform.OS === 'ios' ? insets.top - 25 : 175,
-      paddingBottom: 400,
-      justifyContent: "flex-end",
-    },
-    messageContainer: {
-      width: "100%",
-      paddingHorizontal: 15,
-    },
-  });
 

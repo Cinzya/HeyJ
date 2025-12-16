@@ -48,7 +48,8 @@
     "react-native-uuid": "^2.0.1",
     "react-native-vector-icons": "^10.0.3",
     "react-native-view-shot": "4.0.3",
-    "react-qr-code": "^2.0.12"
+    "react-qr-code": "^2.0.12",
+    "zustand": "^5.0.9"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",

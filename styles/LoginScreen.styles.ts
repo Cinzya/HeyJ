@@ -1,0 +1,180 @@
+import { StyleSheet } from "react-native";
+import { colors, spacing, typography, borderRadius, buttonHeight } from "./theme";
+
+export const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  scrollContainer: {
+    flexGrow: 1,
+    justifyContent: "center",
+  },
+  content: {
+    padding: spacing.lg,
+    alignItems: "center",
+  },
+  title: {
+    ...typography.title,
+    marginBottom: 10,
+    color: colors.text,
+  },
+  subtitle: {
+    ...typography.subtitle,
+    color: colors.textSecondary,
+    marginBottom: spacing.xxl,
+  },
+  emailSection: {
+    width: "100%",
+    maxWidth: 400,
+    marginBottom: spacing.xl,
+  },
+  sectionTitle: {
+    ...typography.sectionTitle,
+    marginBottom: spacing.md,
+    textAlign: "center",
+    color: colors.darkGray,
+  },
+  input: {
+    width: "100%",
+    height: buttonHeight,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.md,
+    fontSize: typography.body.fontSize,
+    backgroundColor: colors.backgroundSecondary,
+  },
+  emailButton: {
+    width: "100%",
+    height: buttonHeight,
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.md,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 10,
+  },
+  emailButtonDisabled: {
+    backgroundColor: colors.primaryDisabled,
+  },
+  emailButtonText: {
+    color: colors.white,
+    fontSize: typography.body.fontSize,
+    fontWeight: "600",
+  },
+  toggleButton: {
+    marginTop: spacing.md,
+    padding: 10,
+  },
+  toggleButtonText: {
+    color: colors.link,
+    fontSize: typography.bodySmall.fontSize,
+    textAlign: "center",
+  },
+  oauthSection: {
+    width: "100%",
+    alignItems: "center",
+  },
+  divider: {
+    fontSize: typography.bodySmall.fontSize,
+    color: colors.lightGray,
+    marginVertical: spacing.lg,
+  },
+  oauthButtons: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginTop: 10,
+  },
+  confirmationContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: spacing.xl,
+    backgroundColor: colors.background,
+  },
+  confirmationIcon: {
+    fontSize: 80,
+    marginBottom: spacing.lg,
+  },
+  confirmationTitle: {
+    fontSize: 28,
+    fontWeight: "bold",
+    marginBottom: spacing.lg,
+    color: colors.text,
+    textAlign: "center",
+  },
+  confirmationText: {
+    fontSize: typography.body.fontSize,
+    color: colors.textSecondary,
+    textAlign: "center",
+    marginBottom: 10,
+  },
+  confirmationEmail: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: colors.text,
+    textAlign: "center",
+    marginBottom: spacing.lg,
+  },
+  confirmationInstructions: {
+    fontSize: typography.body.fontSize,
+    color: colors.textSecondary,
+    textAlign: "center",
+    marginBottom: spacing.xl,
+    lineHeight: 24,
+    paddingHorizontal: spacing.lg,
+  },
+  confirmationTips: {
+    backgroundColor: "#f0f8ff",
+    padding: spacing.lg,
+    borderRadius: borderRadius.md,
+    marginBottom: spacing.xl,
+    width: "100%",
+    maxWidth: 400,
+  },
+  tipsTitle: {
+    fontSize: typography.body.fontSize,
+    fontWeight: "600",
+    marginBottom: 10,
+    color: colors.darkGray,
+  },
+  tipText: {
+    fontSize: typography.bodySmall.fontSize,
+    color: colors.textSecondary,
+    marginBottom: 5,
+    lineHeight: 20,
+  },
+  primaryButton: {
+    width: "100%",
+    maxWidth: 400,
+    height: buttonHeight,
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.md,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: spacing.md,
+  },
+  primaryButtonText: {
+    color: colors.white,
+    fontSize: typography.body.fontSize,
+    fontWeight: "600",
+  },
+  secondaryButton: {
+    width: "100%",
+    maxWidth: 400,
+    height: buttonHeight,
+    backgroundColor: "transparent",
+    borderRadius: borderRadius.md,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  secondaryButtonText: {
+    color: colors.textSecondary,
+    fontSize: typography.body.fontSize,
+    fontWeight: "600",
+  },
+});
+

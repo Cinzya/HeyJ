@@ -1,4 +1,5 @@
-import { StyleSheet, TouchableOpacity, View, Text } from "react-native";
+import { TouchableOpacity, View, Text } from "react-native";
+import { styles } from "./styles/App.styles";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -70,8 +71,8 @@ export default function App() {
         <NavigationContainer>
           <AuthStack.Navigator screenOptions={{ headerShown: false }}>
             <AuthStack.Screen name="Login" component={LoginScreen} />
-            <AuthStack.Screen 
-              name="Signup" 
+            <AuthStack.Screen
+              name="Signup"
               component={SignupScreen}
               options={{
                 headerShown: true,
@@ -99,7 +100,7 @@ const Navigation = () => {
           const incomingCount = friendRequests.filter(
             (req) => req.status === "pending" && req.addresseeId === profile?.uid
           ).length;
-          
+
           return {
             headerRight: () => (
               <TouchableOpacity
@@ -117,7 +118,7 @@ const Navigation = () => {
         name="Conversation"
         component={ConversationScreen}
         options={{
-          headerBackTitleStyle: styles.backButton,
+          headerBackTitleStyle: { color: "#000" },
           headerTintColor: "#000",
         }}
       />
@@ -131,15 +132,3 @@ const Navigation = () => {
     </Stack.Navigator>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  backButton: {
-    color: "#000",
-  },
-});

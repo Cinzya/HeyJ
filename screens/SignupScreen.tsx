@@ -4,14 +4,13 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
   Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   Image,
-  Dimensions,
 } from "react-native";
+import { styles } from "../styles/SignupScreen.styles";
 // @ts-expect-error
 import { AntDesign, Ionicons } from "react-native-vector-icons";
 import {
@@ -23,71 +22,27 @@ import {
 import { openSettings } from "expo-linking";
 import { signUpWithEmail } from "../utilities/AuthHelper";
 import { supabase } from "../utilities/Supabase";
-
-interface PasswordStrength {
-  score: number; // 0-4
-  label: string;
-  color: string;
-  requirements: {
-    length: boolean;
-    uppercase: boolean;
-    lowercase: boolean;
-    number: boolean;
-    special: boolean;
-  };
-}
+import { useFormValidation } from "../hooks/useFormValidation";
+import { useFormValidation } from "../hooks/useFormValidation";
 
 const SignupScreen = ({ navigation }: { navigation: any }) => {
-  const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [profileImage, setProfileImage] = useState<ImagePickerAsset | null>(null);
 
   const defaultProfileImage = "https://media.istockphoto.com/id/1223671392/vector/default-profile-picture-avatar-photo-placeholder-vector-illustration.jpg?s=612x612&w=0&k=20&c=s0aTdmT5aU6b8ot7VKm11DeID6NctRCpB755rA1BIP0=";
 
-  const calculatePasswordStrength = (pwd: string): PasswordStrength => {
-    const requirements = {
-      length: pwd.length >= 12,
-      uppercase: /[A-Z]/.test(pwd),
-      lowercase: /[a-z]/.test(pwd),
-      number: /[0-9]/.test(pwd),
-      special: /[!@#$%^&*(),.?":{}|<>]/.test(pwd),
-    };
-
-    const metRequirements = Object.values(requirements).filter(Boolean).length;
-
-    let score = 0;
-    let label = "Very Weak";
-    let color = "#ff4444";
-
-    if (requirements.length && metRequirements >= 2) {
-      score = 1;
-      label = "Weak";
-      color = "#ff8800";
-    }
-    if (requirements.length && metRequirements >= 3) {
-      score = 2;
-      label = "Fair";
-      color = "#ffbb00";
-    }
-    if (requirements.length && metRequirements >= 4) {
-      score = 3;
-      label = "Good";
-      color = "#88cc00";
-    }
-    if (requirements.length && metRequirements === 5) {
-      score = 4;
-      label = "Strong";
-      color = "#00cc44";
-    }
-
-    return { score, label, color, requirements };
-  };
-
-  const passwordStrength = calculatePasswordStrength(password);
+  const {
+    email,
+    setEmail,
+    password,
+    setPassword,
+    confirmPassword,
+    setConfirmPassword,
+    passwordStrength,
+    passwordsMatch,
+  } = useFormValidation();
 
   const getProfilePic = async () => {
     console.log("📸 Profile picture button pressed");
@@ -188,7 +143,7 @@ const SignupScreen = ({ navigation }: { navigation: any }) => {
       );
       return;
     }
-    if (password !== confirmPassword) {
+    if (!passwordsMatch) {
       Alert.alert("Error", "Passwords do not match");
       return;
     }
@@ -492,10 +447,6 @@ const RequirementItem = ({ met, text }: { met: boolean; text: string }) => (
 );
 
 export default SignupScreen;
-
-const { width } = Dimensions.get("window");
-
-const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
