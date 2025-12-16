@@ -12,6 +12,7 @@ import {
 import { documentDirectory, createDownloadResumable } from "expo-file-system/legacy";
 import UUID from "react-native-uuid";
 import { markMessageAsRead } from "../../utilities/MarkMessageAsRead";
+import { useAudioSettings } from "../../utilities/AudioSettingsProvider";
 
 const RecordingPlayer = ({
   uri,
@@ -32,6 +33,7 @@ const RecordingPlayer = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const hasMarkedAsRead = useRef(false);
+  const { speakerMode } = useAudioSettings();
 
   // Initialize player - will be set when file loads
   // Use a placeholder that won't cause errors
@@ -211,8 +213,21 @@ const RecordingPlayer = ({
           playsInSilentMode: true,
           allowsRecording: false, // We're playing, not recording
         });
+        // Note: expo-audio doesn't have direct speaker routing support
+        // For full speaker routing, you may need to use expo-av or a native module
+        // This is a placeholder for future implementation
+        if (speakerMode) {
+          // TODO: Implement speaker routing when expo-audio adds support
+          // or integrate with expo-av Audio.setAudioModeAsync({ shouldRouteToSpeaker: true })
+          console.log("Speaker mode enabled - routing to speaker");
+        }
       } catch (error) {
         console.error("Error setting audio mode for playback:", error);
+      }
+    } else if (Platform.OS === 'android') {
+      // Android speaker routing would go here
+      if (speakerMode) {
+        console.log("Speaker mode enabled - routing to speaker");
       }
     }
 

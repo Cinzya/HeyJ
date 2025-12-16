@@ -14,7 +14,7 @@ import Conversation from "../objects/Conversation";
 import { useEffect, useState } from "react";
 import { format, isToday, isYesterday, isThisWeek, isBefore } from "date-fns";
 import { useNavigation } from "@react-navigation/native";
-import { useAudioPlayer } from "expo-audio";
+import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import { documentDirectory, createDownloadResumable } from "expo-file-system/legacy";
 // OneSignal is mocked - see mocks/react-native-onesignal.js
 import {
@@ -75,19 +75,31 @@ const ConversationsScreen = ({
   }, [sortedConversations]);
 
   const audioPlayer = useAudioPlayer();
+  const playerStatus = useAudioPlayerStatus(audioPlayer);
+
+  // Track which conversation is currently playing
+  const [currentlyPlayingConversationId, setCurrentlyPlayingConversationId] = useState<string | null>(null);
 
   useEffect(() => {
     getSortedConversations();
   }, [conversations]);
 
-  const playFromUri = async (uri: string) => {
+
+  // Clear currently playing conversation when playback stops
+  useEffect(() => {
+    if (!playerStatus.playing && currentlyPlayingConversationId) {
+      setCurrentlyPlayingConversationId(null);
+    }
+  }, [playerStatus.playing, currentlyPlayingConversationId]);
+
+  const playFromUri = async (uri: string, conversationId?: string) => {
     try {
       const docDir = documentDirectory;
       if (!docDir) {
         console.error("Error playing audio: Document directory is undefined");
         return;
       }
-      
+
       const downloadResumable = createDownloadResumable(
         uri,
         docDir + "notification.mp4",
@@ -98,6 +110,9 @@ const ConversationsScreen = ({
       if (newFile) {
         audioPlayer.replace(newFile.uri);
         audioPlayer.play();
+        if (conversationId) {
+          setCurrentlyPlayingConversationId(conversationId);
+        }
       }
     } catch (error) {
       console.error("Error playing audio from URI:", error);
@@ -111,7 +126,7 @@ const ConversationsScreen = ({
       if (data && data.conversationId && data.messageUrl) {
         setSelectedConversation(data.conversationId);
 
-        playFromUri(data.messageUrl);
+        playFromUri(data.messageUrl, data.conversationId);
         updateLastRead(data.conversationId, profile!.uid);
       }
     };
@@ -122,7 +137,7 @@ const ConversationsScreen = ({
       if (data && data.conversationId && data.messageUrl) {
         setSelectedConversation(data.conversationId);
 
-        playFromUri(data.messageUrl);
+        playFromUri(data.messageUrl, data.conversationId);
 
         updateLastRead(data.conversationId, profile!.uid);
       }
@@ -177,18 +192,18 @@ const ConversationsScreen = ({
           }
           onPress={() => {
             setSelectedConversation(conversation.conversationId);
-            const lastRead = conversation.lastRead.filter(
-              (l) => l.uid === profile?.uid
-            )[0];
             const lastMessage = lastMessageFromOtherUser(conversation);
 
-            if (
-              lastMessage &&
-              lastRead &&
-              isBefore(lastRead.timestamp, lastMessage.timestamp)
-            ) {
-              playFromUri(lastMessage.audioUrl);
-              updateLastRead(conversation.conversationId, profile!.uid);
+            // Play the last message from the other user when tapping the conversation
+            if (lastMessage) {
+              playFromUri(lastMessage.audioUrl, conversation.conversationId);
+              const lastRead = conversation.lastRead.filter(
+                (l) => l.uid === profile?.uid
+              )[0];
+              // Update last read if this message hasn't been read yet
+              if (!lastRead || isBefore(lastRead.timestamp, lastMessage.timestamp)) {
+                updateLastRead(conversation.conversationId, profile!.uid);
+              }
             }
           }}
           onLongPress={() =>
@@ -199,9 +214,9 @@ const ConversationsScreen = ({
         >
           <View style={styles.statusIndicator}>
             <View style={[styles.statusCircle, { backgroundColor: status.color }]}>
-              <FontAwesome 
-                name={status.icon} 
-                style={styles.statusIcon} 
+              <FontAwesome
+                name={status.icon}
+                style={styles.statusIcon}
               />
             </View>
           </View>
@@ -224,7 +239,7 @@ const ConversationsScreen = ({
               })
             }
           >
-            <Entypo name="location" style={styles.targetIcon} />
+            <Entypo name="chat" style={styles.targetIcon} />
           </TouchableOpacity>
         </TouchableOpacity>
       );

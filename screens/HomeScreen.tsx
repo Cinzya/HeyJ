@@ -22,10 +22,14 @@ import { useProfile } from "../utilities/ProfileProvider";
 import ConversationsScreen from "./ConversationsScreen";
 import { sendMessage } from "../utilities/SendMessage";
 import { useNavigation } from "@react-navigation/native";
+import { useAudioSettings } from "../utilities/AudioSettingsProvider";
+// @ts-expect-error
+import { FontAwesome } from "react-native-vector-icons";
 
 const HomeScreen = () => {
   const navigation = useNavigation();
   const { profile, conversations, profiles } = useProfile();
+  const { speakerMode, toggleSpeakerMode, autoplay, toggleAutoplay } = useAudioSettings();
 
   const [selectedConversation, setSelectedConversation] = useState<
     string | null
@@ -280,6 +284,36 @@ const HomeScreen = () => {
         </View>
       )}
       <View style={styles.selectionContainer}>
+        <View style={styles.topButtonRow}>
+          <TouchableOpacity
+            onPress={toggleSpeakerMode}
+            style={[styles.speakerButton, speakerMode && styles.speakerButtonActive]}
+            activeOpacity={0.7}
+          >
+            <FontAwesome
+              name="volume-up"
+              style={[styles.speakerIcon, speakerMode && styles.speakerIconActive]}
+            />
+            <Text style={[styles.speakerLabel, speakerMode && styles.speakerLabelActive]}>
+              SPEAKER
+            </Text>
+            {speakerMode && <View style={styles.speakerIndicator} />}
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={toggleAutoplay}
+            style={[styles.autoplayButton, autoplay && styles.autoplayButtonActive]}
+            activeOpacity={0.7}
+          >
+            <FontAwesome
+              name="play-circle"
+              style={[styles.autoplayIcon, autoplay && styles.autoplayIconActive]}
+            />
+            <Text style={[styles.autoplayLabel, autoplay && styles.autoplayLabelActive]}>
+              PLAY
+            </Text>
+            {autoplay && <View style={styles.autoplayIndicator} />}
+          </TouchableOpacity>
+        </View>
         <View style={styles.recipientContainer}>
           <Text style={styles.recipientLabel}>To:</Text>
           <View style={styles.recipientField}>
@@ -397,6 +431,97 @@ const Styles = (
       fontSize: 16,
       color: "#333",
     },
+    topButtonRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "flex-start",
+      marginBottom: 15,
+      gap: 10,
+    },
+    speakerButton: {
+      width: 90,
+      height: 60,
+      backgroundColor: "#E0E0E0",
+      borderRadius: 8,
+      alignItems: "center",
+      justifyContent: "center",
+      borderWidth: 1,
+      borderColor: "#B0B0B0",
+      position: "relative",
+    },
+    speakerButtonActive: {
+      backgroundColor: "#4CAF50",
+      borderColor: "#45a049",
+    },
+    speakerIcon: {
+      fontSize: 20,
+      color: "#666",
+      marginBottom: 4,
+    },
+    speakerIconActive: {
+      color: "#FFF",
+    },
+    speakerLabel: {
+      fontSize: 10,
+      fontWeight: "600",
+      color: "#666",
+      letterSpacing: 0.5,
+    },
+    speakerLabelActive: {
+      color: "#FFF",
+    },
+    speakerIndicator: {
+      position: "absolute",
+      bottom: 6,
+      left: "50%",
+      marginLeft: -12,
+      width: 24,
+      height: 3,
+      backgroundColor: "#FFF",
+      borderRadius: 2,
+    },
+    autoplayButton: {
+      width: 90,
+      height: 60,
+      backgroundColor: "#E0E0E0",
+      borderRadius: 8,
+      alignItems: "center",
+      justifyContent: "center",
+      borderWidth: 1,
+      borderColor: "#B0B0B0",
+      position: "relative",
+    },
+    autoplayButtonActive: {
+      backgroundColor: "#4CAF50",
+      borderColor: "#45a049",
+    },
+    autoplayIcon: {
+      fontSize: 20,
+      color: "#666",
+      marginBottom: 4,
+    },
+    autoplayIconActive: {
+      color: "#FFF",
+    },
+    autoplayLabel: {
+      fontSize: 10,
+      fontWeight: "600",
+      color: "#666",
+      letterSpacing: 0.5,
+    },
+    autoplayLabelActive: {
+      color: "#FFF",
+    },
+    autoplayIndicator: {
+      position: "absolute",
+      bottom: 6,
+      left: "50%",
+      marginLeft: -12,
+      width: 24,
+      height: 3,
+      backgroundColor: "#FFF",
+      borderRadius: 2,
+    },
     holdAndSpeakButton: {
       width: "100%",
       height: 180,
@@ -409,7 +534,6 @@ const Styles = (
       shadowOffset: { width: 0, height: 3 },
       shadowRadius: 5,
       elevation: 4,
-      alignSelf: "center",
     },
     holdAndSpeakText: {
       fontSize: 18,

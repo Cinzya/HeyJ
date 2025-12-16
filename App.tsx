@@ -9,6 +9,7 @@ import { supabase } from "./utilities/Supabase";
 // @ts-expect-error
 import { Ionicons } from "react-native-vector-icons";
 import { ProfileProvider, useProfile } from "./utilities/ProfileProvider";
+import { AudioSettingsProvider } from "./utilities/AudioSettingsProvider";
 import HomeScreen from "./screens/HomeScreen";
 import LoginScreen from "./screens/LoginScreen";
 import SignupScreen from "./screens/SignupScreen";
@@ -52,9 +53,11 @@ export default function App() {
         <NavigationContainer>
           <ActionSheetProvider>
             <ProfileProvider>
-              <ModalWrapper>
-                <Navigation />
-              </ModalWrapper>
+              <AudioSettingsProvider>
+                <ModalWrapper>
+                  <Navigation />
+                </ModalWrapper>
+              </AudioSettingsProvider>
             </ProfileProvider>
           </ActionSheetProvider>
         </NavigationContainer>
