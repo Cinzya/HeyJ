@@ -64,7 +64,7 @@ const ConversationItem = ({
     >
       <View style={styles.statusIndicator}>
         <View style={[styles.statusCircle, { backgroundColor: status.color }]}>
-          <FontAwesome name={status.icon} style={styles.statusIcon} />
+          <FontAwesome name={status.icon as any} style={styles.statusIcon} />
         </View>
       </View>
       <View style={styles.textContainer}>

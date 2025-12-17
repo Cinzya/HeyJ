@@ -31,6 +31,20 @@ const ConversationScreen = ({ route }: ConversationScreenProps) => {
   const { conversation, sortedMessages, otherProfile } = useConversationMessages(conversationId);
   const [currentUri, setCurrentUri] = React.useState("");
   const { isRecording } = useAudioRecordingStore();
+  
+  // Track previous message count to detect new messages
+  const prevMessageCountRef = useRef<number>(0);
+  // Track if user has manually scrolled away from bottom
+  const [shouldAutoScroll, setShouldAutoScroll] = React.useState(true);
+  // Track if this is initial load
+  const isInitialLoadRef = useRef(true);
+
+  // Reset initial load flag when conversation changes
+  useEffect(() => {
+    isInitialLoadRef.current = true;
+    prevMessageCountRef.current = 0;
+    setShouldAutoScroll(true);
+  }, [conversationId]);
 
   useEffect(() => {
     navigation.setOptions({
@@ -96,11 +110,38 @@ const ConversationScreen = ({ route }: ConversationScreenProps) => {
 
   const flatListRef = useRef<FlatList>(null);
 
+  // Only scroll to end when a new message is actually added (not on every data change)
   useEffect(() => {
-    if (flatListRef.current) {
-      flatListRef.current.scrollToEnd({ animated: true });
+    const currentMessageCount = sortedMessages.reduce((sum, section) => sum + section.data.length, 0);
+    const prevMessageCount = prevMessageCountRef.current;
+    
+    // Only scroll if:
+    // 1. This is the initial load, OR
+    // 2. A new message was added AND user should auto-scroll
+    if (isInitialLoadRef.current) {
+      // Initial load - scroll to end
+      if (flatListRef.current && currentMessageCount > 0) {
+        setTimeout(() => {
+          if (flatListRef.current) {
+            flatListRef.current.scrollToEnd({ animated: false });
+          }
+        }, 100);
+      }
+      isInitialLoadRef.current = false;
+      prevMessageCountRef.current = currentMessageCount;
+    } else if (currentMessageCount > prevMessageCount && shouldAutoScroll) {
+      // New message added and user is at/near bottom - scroll to end
+      setTimeout(() => {
+        if (flatListRef.current) {
+          flatListRef.current.scrollToEnd({ animated: true });
+        }
+      }, 100);
+      prevMessageCountRef.current = currentMessageCount;
+    } else {
+      // Just update the count without scrolling
+      prevMessageCountRef.current = currentMessageCount;
     }
-  }, [sortedMessages]);
+  }, [sortedMessages, shouldAutoScroll]);
 
   useEffect(() => {
     if (conversation) {
@@ -118,16 +159,13 @@ const ConversationScreen = ({ route }: ConversationScreenProps) => {
         renderItem={({ item }) => renderSection(item)}
         contentContainerStyle={styles.listContainer}
         contentInsetAdjustmentBehavior="automatic"
-        onContentSizeChange={() => {
-          if (flatListRef.current) {
-            flatListRef.current.scrollToEnd({ animated: false });
-          }
+        onScroll={(event) => {
+          // Track if user is near the bottom (within 100px)
+          const { contentOffset, contentSize, layoutMeasurement } = event.nativeEvent;
+          const distanceFromBottom = contentSize.height - layoutMeasurement.height - contentOffset.y;
+          setShouldAutoScroll(distanceFromBottom < 100);
         }}
-        onLayout={() => {
-          if (flatListRef.current) {
-            flatListRef.current.scrollToEnd({ animated: false });
-          }
-        }}
+        scrollEventThrottle={400}
         ListEmptyComponent={() => <Text>No Messages</Text>}
       />
       <RecordingPanel

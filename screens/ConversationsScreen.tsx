@@ -3,22 +3,17 @@ import { styles } from "../styles/ConversationsScreen.styles";
 import { useProfile } from "../utilities/ProfileProvider";
 import { useConversations } from "../utilities/ConversationsProvider";
 import { useFriends } from "../utilities/FriendsProvider";
-import Conversation from "../objects/Conversation";
-import FriendRequest from "../objects/FriendRequest";
-import Profile from "../objects/Profile";
 import { useEffect } from "react";
-import { getOtherUserUid } from "../utilities/conversationUtils";
 import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { RootStackParamList } from "../types/navigation";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import { useAudioSettings } from "../utilities/AudioSettingsProvider";
 import { useIncomingRequesterProfiles } from "../hooks/useProfileData";
-import { useConversationListStore, ConversationListItem } from "../stores/useConversationListStore";
+import { useConversationListStore, ConversationListItem as ConversationListItemType } from "../stores/useConversationListStore";
 import { useAudioPlaybackStore } from "../stores/useAudioPlaybackStore";
 import { useFriendRequestActionsStore } from "../stores/useFriendRequestActionsStore";
-import FriendRequestItem from "../components/conversations/FriendRequestItem";
-import ConversationItem from "../components/conversations/ConversationItem";
+import ConversationListItemComponent from "../components/conversations/ConversationListItem";
 
 const ConversationsScreen = () => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
@@ -31,7 +26,7 @@ const ConversationsScreen = () => {
     acceptFriendRequest,
     rejectFriendRequest,
   } = useFriends();
-  const { autoplay } = useAudioSettings();
+  const { autoplay, speakerMode } = useAudioSettings();
 
   // Zustand stores
   const {
@@ -90,7 +85,7 @@ const ConversationsScreen = () => {
 
   // Auto-play new messages
   useEffect(() => {
-    handleAutoPlay(conversations, autoplay, profile?.uid, audioPlayer, updateMessageReadStatus);
+    handleAutoPlay(conversations, autoplay, profile?.uid, audioPlayer, updateMessageReadStatus, speakerMode);
   }, [
     conversations.map((c) => `${c.conversationId}:${c.messages.length}`).join(","),
     autoplay,
@@ -98,6 +93,7 @@ const ConversationsScreen = () => {
     audioPlayer,
     handleAutoPlay,
     updateMessageReadStatus,
+    speakerMode,
   ]);
 
   // Initialize notification handlers
@@ -111,61 +107,29 @@ const ConversationsScreen = () => {
     return cleanup;
   }, [profile, setSelectedConversation, initializeNotificationHandlers, audioPlayer]);
 
-  const renderItem = ({ item }: { item: ConversationListItem }) => {
-    if (item.type === "friendRequest") {
-      return (
-        <FriendRequestItem
-          request={item.data}
-          requesterProfile={item.requesterProfile}
-          onAccept={() =>
-            handleAccept(
-              item.data,
-              item.requesterProfile,
-              acceptFriendRequest,
-              getFriendRequests,
-              getFriends
-            )
-          }
-          onDecline={() =>
-            handleDecline(item.data.id, rejectFriendRequest, getFriendRequests)
-          }
-        />
-      );
-    } else {
-      if (!profile) return <View />;
-
-      const otherUserUid = getOtherUserUid(item.data, profile.uid);
-      if (!otherUserUid) return <View />;
-
-      const otherProfile = profiles.find((p) => p.uid === otherUserUid);
-      if (!otherProfile) return <View />;
-
-      const isSelected = selectedConversation === item.data.conversationId;
-
-      return (
-        <ConversationItem
-          conversation={item.data}
-          currentUserProfile={profile}
-          otherProfile={otherProfile}
-          isSelected={isSelected}
-          onPress={() => setSelectedConversation(item.data.conversationId)}
-          onLongPress={() =>
-            navigation.navigate("Conversation", {
-              conversationId: item.data.conversationId,
-            })
-          }
-          playFromUri={playFromUri}
-          audioPlayer={audioPlayer}
-        />
-      );
-    }
-  };
-
   return (
     <FlatList
       data={sortedListItems}
-      renderItem={renderItem}
-      style={styles.container}
+      renderItem={({ item }) => (
+        <ConversationListItemComponent
+          item={item}
+          profiles={profiles}
+          currentUserProfile={profile}
+          selectedConversation={selectedConversation}
+          onSelect={setSelectedConversation}
+          onNavigate={(conversationId: string) =>
+            navigation.navigate("Conversation", { conversationId })
+          }
+          playFromUri={playFromUri}
+          audioPlayer={audioPlayer}
+          acceptFriendRequest={acceptFriendRequest}
+          getFriendRequests={getFriendRequests}
+          getFriends={getFriends}
+          handleAccept={handleAccept}
+          handleDecline={handleDecline}
+          rejectFriendRequest={rejectFriendRequest}
+        />
+      )}
       ItemSeparatorComponent={() => <View style={styles.separator} />}
       keyExtractor={(item, index) => {
         if (item.type === "friendRequest") {
@@ -174,6 +138,7 @@ const ConversationsScreen = () => {
           return `conversation-${item.data.conversationId}`;
         }
       }}
+      style={styles.container}
     />
   );
 };

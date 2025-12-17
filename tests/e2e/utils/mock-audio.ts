@@ -76,14 +76,16 @@ export async function setupAudioMocking(page: Page): Promise<void> {
       
       (window as any).MediaRecorder = class MockMediaRecorder {
         private chunks: Blob[] = [];
-        private state: 'inactive' | 'recording' | 'paused' = 'inactive';
+        private _state: 'inactive' | 'recording' | 'paused' = 'inactive';
+        private _stream?: MediaStream;
         
-        constructor(private stream?: MediaStream, private options?: any) {
+        constructor(stream?: MediaStream, private options?: any) {
+          this._stream = stream;
           // Create a test audio blob when recording starts
         }
 
         start() {
-          this.state = 'recording';
+          this._state = 'recording';
           // Simulate recording by creating chunks
           setTimeout(() => {
             // Create a minimal audio blob
@@ -93,7 +95,7 @@ export async function setupAudioMocking(page: Page): Promise<void> {
         }
 
         stop() {
-          this.state = 'inactive';
+          this._state = 'inactive';
           const event = new Event('dataavailable');
           (event as any).data = this.createTestBlob();
           this.dispatchEvent(event);
@@ -103,19 +105,19 @@ export async function setupAudioMocking(page: Page): Promise<void> {
         }
 
         pause() {
-          this.state = 'paused';
+          this._state = 'paused';
         }
 
         resume() {
-          this.state = 'recording';
+          this._state = 'recording';
         }
 
         get state() {
-          return this.state;
+          return this._state;
         }
 
         get stream() {
-          return this.stream;
+          return this._stream;
         }
 
         addEventListener(type: string, listener: EventListener) {

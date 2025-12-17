@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import Conversation from "../objects/Conversation";
+import Message from "../objects/Message";
 import { updateLastRead } from "../utilities/UpdateConversation";
 import { getUnreadMessagesFromOtherUser } from "../utilities/conversationUtils";
 import { playAudioFromUri } from "../services/audioService";
@@ -28,6 +29,7 @@ interface AudioPlaybackState {
   conversations: Conversation[];
   profileId: string | undefined;
   updateMessageReadStatus: ((messageId: string) => void) | undefined;
+  speakerMode: boolean;
   setAudioPlayer: (player: AudioPlayer) => void;
   setPlayerStatus: (status: AudioPlayerStatus) => void;
   setCurrentlyPlaying: (conversationId: string | null) => void;
@@ -39,7 +41,8 @@ interface AudioPlaybackState {
     autoplay: boolean,
     profileId: string | undefined,
     audioPlayer: AudioPlayer,
-    updateMessageReadStatus?: (messageId: string) => void
+    updateMessageReadStatus?: (messageId: string) => void,
+    speakerMode?: boolean
   ) => void;
   playNextUnreadMessage: () => void;
   initializeNotificationHandlers: (
@@ -60,6 +63,7 @@ export const useAudioPlaybackStore = create<AudioPlaybackState>((set, get) => ({
   conversations: [],
   profileId: undefined,
   updateMessageReadStatus: undefined,
+  speakerMode: false,
 
   setAudioPlayer: (player) => {
     set({ audioPlayer: player });
@@ -127,11 +131,22 @@ export const useAudioPlaybackStore = create<AudioPlaybackState>((set, get) => ({
                   const messageIndex = conv.messages.findIndex((m) => m.messageId === messageId);
                   if (messageIndex !== -1) {
                     const updatedMessages = [...conv.messages];
-                    updatedMessages[messageIndex] = {
-                      ...updatedMessages[messageIndex],
-                      isRead: true,
-                    };
-                    return { ...conv, messages: updatedMessages };
+                    const originalMessage = updatedMessages[messageIndex];
+                    // Create a new Message instance with updated isRead property
+                    updatedMessages[messageIndex] = new Message(
+                      originalMessage.messageId,
+                      originalMessage.timestamp,
+                      originalMessage.uid,
+                      originalMessage.audioUrl,
+                      true // isRead = true
+                    );
+                    // Create a new Conversation instance with updated messages
+                    return new Conversation(
+                      conv.conversationId,
+                      conv.uids,
+                      updatedMessages,
+                      conv.lastRead
+                    );
                   }
                 }
                 return conv;
@@ -147,11 +162,22 @@ export const useAudioPlaybackStore = create<AudioPlaybackState>((set, get) => ({
                   const messageIndex = conv.messages.findIndex((m) => m.messageId === messageId);
                   if (messageIndex !== -1) {
                     const updatedMessages = [...conv.messages];
-                    updatedMessages[messageIndex] = {
-                      ...updatedMessages[messageIndex],
-                      isRead: true,
-                    };
-                    return { ...conv, messages: updatedMessages };
+                    const originalMessage = updatedMessages[messageIndex];
+                    // Create a new Message instance with updated isRead property
+                    updatedMessages[messageIndex] = new Message(
+                      originalMessage.messageId,
+                      originalMessage.timestamp,
+                      originalMessage.uid,
+                      originalMessage.audioUrl,
+                      true // isRead = true
+                    );
+                    // Create a new Conversation instance with updated messages
+                    return new Conversation(
+                      conv.conversationId,
+                      conv.uids,
+                      updatedMessages,
+                      conv.lastRead
+                    );
                   }
                 }
                 return conv;
@@ -197,11 +223,22 @@ export const useAudioPlaybackStore = create<AudioPlaybackState>((set, get) => ({
                   const messageIndex = conv.messages.findIndex((m) => m.messageId === messageId);
                   if (messageIndex !== -1) {
                     const updatedMessages = [...conv.messages];
-                    updatedMessages[messageIndex] = {
-                      ...updatedMessages[messageIndex],
-                      isRead: true,
-                    };
-                    return { ...conv, messages: updatedMessages };
+                    const originalMessage = updatedMessages[messageIndex];
+                    // Create a new Message instance with updated isRead property
+                    updatedMessages[messageIndex] = new Message(
+                      originalMessage.messageId,
+                      originalMessage.timestamp,
+                      originalMessage.uid,
+                      originalMessage.audioUrl,
+                      true // isRead = true
+                    );
+                    // Create a new Conversation instance with updated messages
+                    return new Conversation(
+                      conv.conversationId,
+                      conv.uids,
+                      updatedMessages,
+                      conv.lastRead
+                    );
                   }
                 }
                 return conv;
@@ -217,11 +254,22 @@ export const useAudioPlaybackStore = create<AudioPlaybackState>((set, get) => ({
                   const messageIndex = conv.messages.findIndex((m) => m.messageId === messageId);
                   if (messageIndex !== -1) {
                     const updatedMessages = [...conv.messages];
-                    updatedMessages[messageIndex] = {
-                      ...updatedMessages[messageIndex],
-                      isRead: true,
-                    };
-                    return { ...conv, messages: updatedMessages };
+                    const originalMessage = updatedMessages[messageIndex];
+                    // Create a new Message instance with updated isRead property
+                    updatedMessages[messageIndex] = new Message(
+                      originalMessage.messageId,
+                      originalMessage.timestamp,
+                      originalMessage.uid,
+                      originalMessage.audioUrl,
+                      true // isRead = true
+                    );
+                    // Create a new Conversation instance with updated messages
+                    return new Conversation(
+                      conv.conversationId,
+                      conv.uids,
+                      updatedMessages,
+                      conv.lastRead
+                    );
                   }
                 }
                 return conv;
@@ -300,11 +348,13 @@ export const useAudioPlaybackStore = create<AudioPlaybackState>((set, get) => ({
     }
     set({ currentlyPlayingUri: uri });
 
+    const { speakerMode } = get();
     await playAudioFromUri(
       uri,
       player,
       conversationId,
-      conversationId ? (id: string) => set({ currentlyPlayingConversationId: id }) : undefined
+      conversationId ? (id: string) => set({ currentlyPlayingConversationId: id }) : undefined,
+      speakerMode
     );
   },
 
@@ -355,7 +405,9 @@ export const useAudioPlaybackStore = create<AudioPlaybackState>((set, get) => ({
 
       // Found an unread incoming message - play it
       console.log("▶️ Playing next unread message:", nextMessage.messageId, "URI:", nextMessage.audioUrl);
+      const { speakerMode } = get();
       get().playFromUri(nextMessage.audioUrl, currentlyPlayingConversationId, audioPlayer, nextMessage.messageId);
+      // Note: speakerMode is already passed through playFromUri -> playAudioFromUri
       return;
     }
 
@@ -363,9 +415,9 @@ export const useAudioPlaybackStore = create<AudioPlaybackState>((set, get) => ({
     console.log("✅ No more unread messages");
   },
 
-  handleAutoPlay: (conversations, autoplay, profileId, audioPlayer, updateMessageReadStatus) => {
-    // Store conversations, autoplay state, profileId, and updateMessageReadStatus for use in playNextUnreadMessage
-    set({ conversations, autoplayEnabled: autoplay, profileId, updateMessageReadStatus });
+  handleAutoPlay: (conversations, autoplay, profileId, audioPlayer, updateMessageReadStatus, speakerMode) => {
+    // Store conversations, autoplay state, profileId, updateMessageReadStatus, and speakerMode for use in playNextUnreadMessage
+    set({ conversations, autoplayEnabled: autoplay, profileId, updateMessageReadStatus, speakerMode });
     
     if (!autoplay || !profileId || conversations.length === 0) {
       // Update message counts

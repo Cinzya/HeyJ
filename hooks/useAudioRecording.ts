@@ -8,6 +8,7 @@ import {
   RecordingPresets,
 } from "expo-audio";
 import { useAudioRecordingStore } from "../stores/useAudioRecordingStore";
+const getRecordingStore = () => useAudioRecordingStore.getState();
 
 interface UseAudioRecordingOptions {
   onStopRecording?: (uri: string) => Promise<void>;
@@ -110,7 +111,9 @@ export const useAudioRecording = (options: UseAudioRecordingOptions = {}) => {
   const startRecording = async () => {
     if (recordingAllowed !== "granted") {
       await requestPermissions();
-      if (recordingAllowed !== "granted") {
+      // Check the updated permission state from the store
+      const { recordingAllowed: updatedPermission } = getRecordingStore();
+      if (updatedPermission !== "granted") {
         return;
       }
     }

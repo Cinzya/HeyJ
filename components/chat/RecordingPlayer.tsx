@@ -10,6 +10,7 @@ import { markMessageAsRead } from "../../utilities/MarkMessageAsRead";
 import { useAudioSettings } from "../../utilities/AudioSettingsProvider";
 import { supabase } from "../../utilities/Supabase";
 import { loadAudioFile } from "../../services/audioService";
+import { setAudioVolume } from "../../utilities/AudioRouting";
 import RecordingPlayerHeader from "./RecordingPlayerHeader";
 import RecordingPlayerControls from "./RecordingPlayerControls";
 import PlayingIndicator from "./PlayingIndicator";
@@ -133,6 +134,23 @@ const RecordingPlayer = ({
     if (isLoading || file) {
       // If already loaded and should play, play it
       if (shouldPlay && isReady && file && currentUri === uri) {
+        // Check if we're at or near the end - if so, seek to beginning first
+        const currentTime = playerStatus.currentTime || 0;
+        const duration = playerStatus.duration || 0;
+        const positionMs = position || 0;
+        const durationMs = duration * 1000 || 0;
+        
+        const isAtEndByTime = duration > 0 && currentTime >= duration - 0.1;
+        const isAtEndByPosition = durationMs > 0 && positionMs >= durationMs - 100;
+        const isAtEnd = isAtEndByTime || isAtEndByPosition;
+        
+        if (isAtEnd) {
+          console.log("🔄 Resetting playback position to beginning before replay (loadAudio)");
+          audioPlayer.seekTo(0);
+          setPosition(0);
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+        
         audioPlayer.play();
         // Note: Marking as read is now handled by the useEffect that watches playerStatus.playing
       }
@@ -182,6 +200,8 @@ const RecordingPlayer = ({
             console.error("Error setting audio mode for playback:", error);
           }
         }
+        // Set audio volume based on speaker mode before playing
+        setAudioVolume(audioPlayer, speakerMode);
         audioPlayer.play();
         // Note: Marking as read is now handled by the useEffect that watches playerStatus.playing
       }
@@ -204,6 +224,13 @@ const RecordingPlayer = ({
       });
     }
   }, []);
+
+  // Update volume when speakerMode changes
+  useEffect(() => {
+    if (audioPlayer && isReady) {
+      setAudioVolume(audioPlayer, speakerMode);
+    }
+  }, [speakerMode, audioPlayer, isReady]);
 
   // Pre-load audio metadata (duration) when component mounts
   useEffect(() => {
@@ -297,9 +324,9 @@ const RecordingPlayer = ({
 
         // Check if finished
         if (currentTime >= totalDuration && totalDuration > 0) {
-          setPosition(0);
           audioPlayer.pause();
           audioPlayer.seekTo(0);
+          setPosition(0); // Reset position state immediately
           // Notify parent that playback finished (for autoplay queue)
           if (onPlaybackFinished && currentUri === uri) {
             onPlaybackFinished();
@@ -327,23 +354,13 @@ const RecordingPlayer = ({
           playsInSilentMode: true,
           allowsRecording: false, // We're playing, not recording
         });
-        // Note: expo-audio doesn't have direct speaker routing support
-        // For full speaker routing, you may need to use expo-av or a native module
-        // This is a placeholder for future implementation
-        if (speakerMode) {
-          // TODO: Implement speaker routing when expo-audio adds support
-          // or integrate with expo-av Audio.setAudioModeAsync({ shouldRouteToSpeaker: true })
-          console.log("Speaker mode enabled - routing to speaker");
-        }
       } catch (error) {
         console.error("Error setting audio mode for playback:", error);
       }
-    } else if (Platform.OS === 'android') {
-      // Android speaker routing would go here
-      if (speakerMode) {
-        console.log("Speaker mode enabled - routing to speaker");
-      }
     }
+    
+    // Set audio volume based on speaker mode
+    setAudioVolume(audioPlayer, speakerMode);
 
     // If this is not the current playing audio, switch to it
     if (currentUri !== uri) {
@@ -387,6 +404,26 @@ const RecordingPlayer = ({
     } else {
       if (isReady && file) {
         try {
+          // Check if we're at or near the end - if so, seek to beginning first
+          const currentTime = playerStatus.currentTime || 0;
+          const duration = playerStatus.duration || 0;
+          const positionMs = position || 0;
+          const durationMs = duration * 1000 || 0;
+          
+          // Check both playerStatus and our tracked position state
+          const isAtEndByTime = duration > 0 && currentTime >= duration - 0.1;
+          const isAtEndByPosition = durationMs > 0 && positionMs >= durationMs - 100;
+          const isAtEnd = isAtEndByTime || isAtEndByPosition;
+          
+          if (isAtEnd) {
+            // Seek to beginning before playing
+            console.log("🔄 Resetting playback position to beginning before replay");
+            audioPlayer.seekTo(0);
+            setPosition(0); // Also reset our position state
+            // Small delay to ensure seek completes before playing
+            await new Promise(resolve => setTimeout(resolve, 100));
+          }
+          
           audioPlayer.play();
           // Note: Marking as read is now handled by the useEffect that watches playerStatus.playing
         } catch (error) {

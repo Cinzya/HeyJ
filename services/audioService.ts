@@ -3,6 +3,7 @@ import { documentDirectory, createDownloadResumable, cacheDirectory } from "expo
 import { setAudioModeAsync } from "expo-audio";
 import UUID from "react-native-uuid";
 import { AudioPlayer } from "../types/audio";
+import { setAudioVolume } from "../utilities/AudioRouting";
 
 /**
  * Loads an audio file from a URI and returns the local file path
@@ -71,7 +72,8 @@ export const playAudioFromUri = async (
   uri: string,
   audioPlayer: AudioPlayer,
   conversationId?: string,
-  onConversationPlaying?: (conversationId: string) => void
+  onConversationPlaying?: (conversationId: string) => void,
+  speakerMode?: boolean
 ): Promise<void> => {
   try {
     if (!audioPlayer) {
@@ -90,6 +92,10 @@ export const playAudioFromUri = async (
         console.error("Error setting audio mode for playback:", error);
       }
     }
+    
+    // Set audio volume based on speaker mode
+    // Default to earpiece (false) if speakerMode is not provided
+    setAudioVolume(audioPlayer, speakerMode ?? false);
 
     // On web, we can use the URI directly
     if (Platform.OS === 'web') {

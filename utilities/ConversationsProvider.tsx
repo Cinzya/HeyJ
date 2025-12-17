@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useRef } from "react";
 import { supabase } from "./Supabase";
 import Conversation from "../objects/Conversation";
+import Message from "../objects/Message";
 import Profile from "../objects/Profile";
 import { useProfile } from "./ProfileProvider";
 
@@ -284,12 +285,23 @@ export const ConversationsProvider = ({ children }: { children: React.ReactNode 
 
         if (messageIndex !== -1) {
           const updatedMessages = [...conv.messages];
-          updatedMessages[messageIndex] = {
-            ...updatedMessages[messageIndex],
-            isRead: true,
-          };
+          const originalMessage = updatedMessages[messageIndex];
+          // Create a new Message instance with updated isRead property
+          updatedMessages[messageIndex] = new Message(
+            originalMessage.messageId,
+            originalMessage.timestamp,
+            originalMessage.uid,
+            originalMessage.audioUrl,
+            true // isRead = true
+          );
 
-          return { ...conv, messages: updatedMessages };
+          // Create a new Conversation instance with updated messages
+          return new Conversation(
+            conv.conversationId,
+            conv.uids,
+            updatedMessages,
+            conv.lastRead
+          );
         }
 
         return conv;

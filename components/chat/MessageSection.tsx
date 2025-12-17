@@ -1,4 +1,4 @@
-import { View, FlatList } from "react-native";
+import { View } from "react-native";
 import Message from "../../objects/Message";
 import MessageItem from "./MessageItem";
 import Profile from "../../objects/Profile";
@@ -36,25 +36,23 @@ const MessageSection = ({
 }: MessageSectionProps) => {
   return (
     <View>
-      <FlatList
-        data={data}
-        renderItem={({ item: message }) => (
-          <MessageItem
-            message={message}
-            currentUri={currentUri}
-            setCurrentUri={setCurrentUri}
-            currentUserUid={currentUserUid}
-            otherProfile={otherProfile}
-            currentUserProfile={currentUserProfile}
-            autoplay={autoplay}
-            isAutoPlaying={isAutoPlaying}
-            playNextUnreadMessage={playNextUnreadMessage}
-            stopAutoplay={stopAutoplay}
-            onMarkAsRead={onMarkAsRead}
-            styles={{ messageContainer: messageContainerStyle }}
-          />
-        )}
-      />
+      {data.map((message) => (
+        <MessageItem
+          key={message.messageId}
+          message={message}
+          currentUri={currentUri}
+          setCurrentUri={setCurrentUri}
+          currentUserUid={currentUserUid}
+          otherProfile={otherProfile}
+          currentUserProfile={currentUserProfile}
+          autoplay={autoplay}
+          isAutoPlaying={isAutoPlaying}
+          playNextUnreadMessage={playNextUnreadMessage}
+          stopAutoplay={stopAutoplay}
+          onMarkAsRead={onMarkAsRead}
+          styles={{ messageContainer: messageContainerStyle }}
+        />
+      ))}
     </View>
   );
 };
