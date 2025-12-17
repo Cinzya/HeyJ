@@ -1,25 +1,35 @@
-import React from "react";
-import {
-  View,
-  Text,
-  FlatList,
-} from "react-native";
-import { createStyles as createConversationScreenStyles } from "../styles/ConversationScreen.styles";
+// React
+import React, { useEffect, useRef } from "react";
+import { View, Text, FlatList } from "react-native";
+
+// Navigation
+import { useNavigation, NavigationProp } from "@react-navigation/native";
+import { HeaderBackButton } from "@react-navigation/elements";
+
+// Third-party libraries
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+// Utilities & Providers
 import { useProfile } from "../utilities/ProfileProvider";
 import { useConversations } from "../utilities/ConversationsProvider";
-import { useEffect, useRef } from "react";
-import { useNavigation, NavigationProp } from "@react-navigation/native";
-import RecordingPanel from "../components/chat/RecordingPanel";
-import { HeaderBackButton } from "@react-navigation/elements";
 import { sendMessage } from "../utilities/SendMessage";
 import { updateLastRead } from "../utilities/UpdateConversation";
+
+// Hooks & Stores
 import { useAudioRecording } from "../hooks/useAudioRecording";
 import { useConversationMessages } from "../hooks/useConversationMessages";
 import { useAudioRecordingStore } from "../stores/useAudioRecordingStore";
-import { ConversationScreenProps, RootStackParamList } from "../types/navigation";
+
+// Components
+import RecordingPanel from "../components/chat/RecordingPanel";
 import MessageSection from "../components/chat/MessageSection";
+
+// Objects & Types
 import Message from "../objects/Message";
+import { ConversationScreenProps, RootStackParamList } from "../types/navigation";
+
+// Styles
+import { createStyles as createConversationScreenStyles } from "../styles/ConversationScreen.styles";
 import { colors } from "../styles/theme";
 
 const ConversationScreen = ({ route }: ConversationScreenProps) => {

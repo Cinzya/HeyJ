@@ -1,3 +1,4 @@
+// React
 import React, { useState } from "react";
 import {
   View,
@@ -9,10 +10,16 @@ import {
   Platform,
   ScrollView,
 } from "react-native";
+
+// Components (for future OAuth implementation - currently commented out at line 121)
 import OAuthButton from "../components/auth/OAuthButton";
+
+// Utilities
 import { signInWithEmail } from "../utilities/AuthHelper";
-import { styles } from "../styles/LoginScreen.styles";
+
+// Types & Styles
 import { LoginScreenProps } from "../types/navigation";
+import { styles } from "../styles/LoginScreen.styles";
 
 
 const LoginScreen = ({ navigation }: LoginScreenProps) => {

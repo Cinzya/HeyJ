@@ -1,3 +1,4 @@
+// React
 import React, { useEffect, useState } from "react";
 import {
   View,
@@ -12,17 +13,22 @@ import {
   Dimensions,
   Alert,
 } from "react-native";
-import Profile from "../../objects/Profile";
+
+// Third-party libraries
 import { AntDesign } from "@expo/vector-icons";
 import {
   ImagePickerAsset,
-  MediaType,
   requestMediaLibraryPermissionsAsync,
   launchImageLibraryAsync,
 } from "expo-image-picker";
 import { openSettings } from "expo-linking";
+
+// Utilities & Providers
 import { supabase } from "../../utilities/Supabase";
 import { useProfile } from "../../utilities/ProfileProvider";
+
+// Objects
+import Profile from "../../objects/Profile";
 
 const CreateProfileModal = () => {
   const { appReady, user, profile, saveProfile, getProfile } = useProfile();

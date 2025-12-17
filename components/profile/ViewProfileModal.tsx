@@ -1,3 +1,4 @@
+// React
 import React, { useState } from "react";
 import {
   View,
@@ -11,25 +12,30 @@ import {
   TouchableWithoutFeedback,
   TextInput,
 } from "react-native";
-import Profile from "../../objects/Profile";
+
+// Third-party libraries
+import { ActionSheetProvider } from "@expo/react-native-action-sheet";
 import {
-  MediaType,
   launchImageLibraryAsync,
   requestMediaLibraryPermissionsAsync,
 } from "expo-image-picker";
 import { openSettings } from "expo-linking";
+import UUID from "react-native-uuid";
+
+// Utilities & Providers
 import { supabase } from "../../utilities/Supabase";
 import { useProfile } from "../../utilities/ProfileProvider";
 import { useConversations } from "../../utilities/ConversationsProvider";
 import { useFriends } from "../../utilities/FriendsProvider";
-import {
-  ActionSheetProvider,
-} from "@expo/react-native-action-sheet";
-import Conversation from "../../objects/Conversation";
-import UUID from "react-native-uuid";
 import { findOrCreateConversation } from "../../utilities/FindOrCreateConversation";
+
+// Components
 import ProfileImageSection from "./ProfileImageSection";
 import ProfileButtons from "./ProfileButtons";
+
+// Objects
+import Profile from "../../objects/Profile";
+import Conversation from "../../objects/Conversation";
 
 const ViewProfileModal = () => {
   const {

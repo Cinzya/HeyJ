@@ -1,24 +1,33 @@
+// React
+import { useEffect, useState } from "react";
 import { TouchableOpacity, View, Text } from "react-native";
-import { styles } from "./styles/App.styles";
+
+// Navigation
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
+
+// Third-party libraries
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import OAuthButton from "./components/auth/OAuthButton";
-import { useEffect, useState } from "react";
-import { User } from "@supabase/supabase-js";
-import { supabase } from "./utilities/Supabase";
+import { ActionSheetProvider } from "@expo/react-native-action-sheet";
 import { Ionicons } from "@expo/vector-icons";
+import { User } from "@supabase/supabase-js";
+
+// Utilities & Providers
+import { supabase } from "./utilities/Supabase";
 import { ProfileProvider, useProfile } from "./utilities/ProfileProvider";
 import { ConversationsProvider } from "./utilities/ConversationsProvider";
 import { FriendsProvider, useFriends } from "./utilities/FriendsProvider";
 import { AudioSettingsProvider } from "./utilities/AudioSettingsProvider";
+import ModalWrapper from "./utilities/ModalWrapper";
+
+// Screens
 import HomeScreen from "./screens/HomeScreen";
 import LoginScreen from "./screens/LoginScreen";
 import SignupScreen from "./screens/SignupScreen";
-import { ActionSheetProvider } from "@expo/react-native-action-sheet";
 import ConversationScreen from "./screens/ConversationScreen";
 import FriendRequestsScreen from "./screens/FriendRequestsScreen";
-import ModalWrapper from "./utilities/ModalWrapper";
+
+// Types & Styles
 import { RootStackParamList, AuthStackParamList } from "./types/navigation";
 import { colors } from "./styles/theme";
 global.Buffer = require("buffer").Buffer;
