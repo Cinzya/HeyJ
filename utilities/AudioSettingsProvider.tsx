@@ -23,6 +23,7 @@ export const AudioSettingsProvider = ({ children }: { children: React.ReactNode 
         console.log('[AudioSettingsProvider] Loading settings from storage...');
         const settings = await AudioSettingsStorage.getAllSettings();
         console.log('[AudioSettingsProvider] Loaded settings:', settings);
+        console.log('[AudioSettingsProvider] ✅ AUTOPLAY VALUE:', settings.autoplay, 'TYPE:', typeof settings.autoplay);
         setSpeakerModeState(settings.speakerMode);
         setAutoplayState(settings.autoplay);
       } catch (error) {

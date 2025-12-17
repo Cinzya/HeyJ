@@ -418,8 +418,26 @@ export const useAudioPlaybackStore = create<AudioPlaybackState>((set, get) => ({
   handleAutoPlay: (conversations, autoplay, profileId, audioPlayer, updateMessageReadStatus, speakerMode) => {
     // Store conversations, autoplay state, profileId, updateMessageReadStatus, and speakerMode for use in playNextUnreadMessage
     set({ conversations, autoplayEnabled: autoplay, profileId, updateMessageReadStatus, speakerMode });
-    
-    if (!autoplay || !profileId || conversations.length === 0) {
+
+    console.log('🔍 handleAutoPlay called:', {
+      autoplay,
+      hasProfileId: !!profileId,
+      profileId,
+      conversationCount: conversations.length,
+      hasAudioPlayer: !!audioPlayer
+    });
+
+    if (!autoplay || !profileId || conversations.length === 0 || !audioPlayer) {
+      console.log('⏸️ AUTOPLAY EARLY RETURN:', {
+        autoplay,
+        profileId,
+        conversationCount: conversations.length,
+        hasAudioPlayer: !!audioPlayer,
+        reason: !autoplay ? 'autoplay disabled' :
+                !profileId ? 'no profileId' :
+                !audioPlayer ? 'no audioPlayer' :
+                'no conversations'
+      });
       // Update message counts
       conversations.forEach((c) => {
         get().updateMessageCount(c.conversationId, c.messages.length);
@@ -447,6 +465,21 @@ export const useAudioPlaybackStore = create<AudioPlaybackState>((set, get) => ({
       // Find unread messages from the other user
       const unheardMessages = getUnreadMessagesFromOtherUser(conversation, otherUserUid);
 
+      console.log('📬 Unread messages check:', {
+        conversationId: conversation.conversationId,
+        totalMessages: conversation.messages.length,
+        unreadCount: unheardMessages.length,
+        isNewMessage,
+        isInitialLoad,
+        currentlyPlayingId: currentlyPlayingConversationId,
+        messageDetails: conversation.messages.map(m => ({
+          id: m.messageId.substring(0, 8),
+          isRead: m.isRead,
+          fromOther: m.uid === otherUserUid,
+          timestamp: m.timestamp.toISOString()
+        }))
+      });
+
       if (unheardMessages.length > 0) {
         const newestUnheard = unheardMessages[0];
         // For initial load, get the oldest unread message (last in array since sorted newest first)
@@ -463,6 +496,11 @@ export const useAudioPlaybackStore = create<AudioPlaybackState>((set, get) => ({
               "🔔 New message received on home screen, autoplaying:",
               newestUnheard.messageId
             );
+            console.log('🔔 New message - autoplaying NEWEST:', {
+              messageId: newestUnheard.messageId,
+              uri: newestUnheard.audioUrl,
+              conversationId: conversation.conversationId
+            });
             get().playFromUri(newestUnheard.audioUrl, conversation.conversationId, audioPlayer, newestUnheard.messageId);
             // Message will be marked as read when playback finishes (via setPlayerStatus)
           } else if (lastCount === undefined || isInitialLoad) {
@@ -475,6 +513,12 @@ export const useAudioPlaybackStore = create<AudioPlaybackState>((set, get) => ({
               `(${unheardMessages.length} unread message(s) total)`,
               isInitialLoad ? "[INITIAL APP LOAD]" : "[NEW CONVERSATION]"
             );
+            console.log('🔔 Initial load - autoplaying OLDEST:', {
+              messageId: oldestUnheard.messageId,
+              uri: oldestUnheard.audioUrl,
+              conversationId: conversation.conversationId,
+              totalUnread: unheardMessages.length
+            });
             get().playFromUri(oldestUnheard.audioUrl, conversation.conversationId, audioPlayer, oldestUnheard.messageId);
             // Message will be marked as read when playback finishes (via setPlayerStatus)
           } else if (currentlyPlayingConversationId === null && lastCount !== undefined) {
@@ -485,6 +529,12 @@ export const useAudioPlaybackStore = create<AudioPlaybackState>((set, get) => ({
               oldestUnheard.messageId,
               `(${unheardMessages.length} unread message(s) total)`
             );
+            console.log('🔔 Autoplay re-enabled - starting from OLDEST:', {
+              messageId: oldestUnheard.messageId,
+              uri: oldestUnheard.audioUrl,
+              conversationId: conversation.conversationId,
+              totalUnread: unheardMessages.length
+            });
             get().playFromUri(oldestUnheard.audioUrl, conversation.conversationId, audioPlayer, oldestUnheard.messageId);
             // Message will be marked as read when playback finishes (via setPlayerStatus)
           }

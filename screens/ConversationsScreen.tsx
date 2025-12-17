@@ -85,6 +85,18 @@ const ConversationsScreen = () => {
 
   // Auto-play new messages
   useEffect(() => {
+    console.log('🎵 Autoplay effect triggered:', {
+      hasAudioPlayer: !!audioPlayer,
+      audioPlayerReady: audioPlayer?.playing !== undefined,
+      autoplay,
+      profileId: profile?.uid,
+      conversationCount: conversations.length,
+      conversationData: conversations.map(c => ({
+        id: c.conversationId,
+        messageCount: c.messages.length
+      }))
+    });
+
     handleAutoPlay(conversations, autoplay, profile?.uid, audioPlayer, updateMessageReadStatus, speakerMode);
   }, [
     conversations.map((c) => `${c.conversationId}:${c.messages.length}`).join(","),
