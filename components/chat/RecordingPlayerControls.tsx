@@ -34,7 +34,7 @@ const RecordingPlayerControls = ({
         activeOpacity={0.7}
       >
         <Entypo
-          name={isPlaying ? "pause-solid" : "controller-play"}
+          name={isPlaying ? "controller-paus" : "controller-play"}
           size={28}
           color={isLoading || !isReady ? "#999" : isPlaying ? "#FFF" : "#000"}
         />
