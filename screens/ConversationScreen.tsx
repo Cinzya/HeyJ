@@ -1,3 +1,4 @@
+import React from "react";
 import {
   View,
   Text,
@@ -13,11 +14,9 @@ import RecordingPanel from "../components/chat/RecordingPanel";
 import { HeaderBackButton } from "@react-navigation/elements";
 import { sendMessage } from "../utilities/SendMessage";
 import { updateLastRead } from "../utilities/UpdateConversation";
-import { useAudioSettings } from "../utilities/AudioSettingsProvider";
 import { useAudioRecording } from "../hooks/useAudioRecording";
 import { useConversationMessages } from "../hooks/useConversationMessages";
 import { useAudioRecordingStore } from "../stores/useAudioRecordingStore";
-import { useConversationAutoplay } from "../hooks/useConversationAutoplay";
 import { ConversationScreenProps, RootStackParamList } from "../types/navigation";
 import MessageSection from "../components/chat/MessageSection";
 import Message from "../objects/Message";
@@ -28,14 +27,9 @@ const ConversationScreen = ({ route }: ConversationScreenProps) => {
   const { profile } = useProfile();
   const { conversations, updateMessageReadStatus } = useConversations();
   const insets = useSafeAreaInsets();
-  const { autoplay } = useAudioSettings();
 
   const { conversation, sortedMessages, otherProfile } = useConversationMessages(conversationId);
-  const { currentUri, setCurrentUri, isAutoPlaying, playNextUnreadMessage, stopAutoplay } = useConversationAutoplay(
-    conversation,
-    otherProfile,
-    profile
-  );
+  const [currentUri, setCurrentUri] = React.useState("");
   const { isRecording } = useAudioRecordingStore();
 
   useEffect(() => {
@@ -92,10 +86,8 @@ const ConversationScreen = ({ route }: ConversationScreenProps) => {
         currentUserUid={profile.uid}
         otherProfile={otherProfile}
         currentUserProfile={profile}
-        autoplay={autoplay}
-        isAutoPlaying={isAutoPlaying}
-        playNextUnreadMessage={playNextUnreadMessage}
-        stopAutoplay={stopAutoplay}
+        autoplay={false}
+        isAutoPlaying={false}
         onMarkAsRead={updateMessageReadStatus}
         messageContainerStyle={styles.messageContainer}
       />

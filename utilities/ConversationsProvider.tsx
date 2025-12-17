@@ -35,37 +35,84 @@ export const ConversationsProvider = ({ children }: { children: React.ReactNode 
   const conversationChannelsRef = useRef<Map<string, any>>(new Map());
 
   const getConversations = async () => {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/f5e603aa-4ab7-41d0-b1fe-b8ca210c432d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ConversationsProvider.tsx:20',message:'getConversations called',data:{hasProfile:!!profile,profileConversations:profile?.conversations||[],conversationIdsCount:profile?.conversations?.length||0},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-    // #endregion
-    if (!profile || !profile.conversations || profile.conversations.length === 0) {
+    if (!profile) {
       setConversations([]);
       return;
     }
 
     let conversations: Conversation[] = [];
+    const conversationIdsSet = new Set<string>();
 
-    await Promise.all(
-      profile.conversations.map(async (id: string) => {
-        try {
-          const { data: conversationData, error } = await supabase
-            .from("conversations")
-            .select()
-            .eq("conversationId", id);
+    // First, fetch conversations from profile.conversations array (if it exists)
+    if (profile.conversations && profile.conversations.length > 0) {
+      await Promise.all(
+        profile.conversations.map(async (id: string) => {
+          try {
+            const { data: conversationData, error } = await supabase
+              .from("conversations")
+              .select()
+              .eq("conversationId", id);
 
-          if (conversationData && conversationData[0]) {
-            conversations.push(
-              await Conversation.fromJSON(conversationData[0])
-            );
+            if (conversationData && conversationData[0]) {
+              const conversation = await Conversation.fromJSON(conversationData[0]);
+              conversations.push(conversation);
+              conversationIdsSet.add(id);
+            }
+          } catch (error) {
+            console.error("Error fetching conversation:", error);
           }
-        } catch (error) {
-          console.error("Error fetching conversation:", error);
-        }
-      })
-    );
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/f5e603aa-4ab7-41d0-b1fe-b8ca210c432d',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'ConversationsProvider.tsx:47',message:'getConversations completed',data:{fetchedCount:conversations.length,conversationIds:conversations.map(c=>c.conversationId),messageCounts:conversations.map(c=>({id:c.conversationId,count:c.messages.length}))},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-    // #endregion
+        })
+      );
+    }
+
+    // Also fetch all conversations where the user is a participant
+    // This handles cases where conversations exist in DB but aren't in profile.conversations yet
+    try {
+      const { data: allConversations, error: fetchError } = await supabase
+        .from("conversations")
+        .select("*");
+
+      if (!fetchError && allConversations) {
+        // Filter conversations where the user's UID is in the uids array
+        const userConversations = allConversations.filter((conv: any) => {
+          const uids = conv.uids || [];
+          return Array.isArray(uids) && uids.includes(profile.uid);
+        });
+
+        // Fetch any conversations we haven't already loaded
+        await Promise.all(
+          userConversations.map(async (convData: any) => {
+            const convId = convData.conversationId;
+            if (!conversationIdsSet.has(convId)) {
+              try {
+                const conversation = await Conversation.fromJSON(convData);
+                conversations.push(conversation);
+                conversationIdsSet.add(convId);
+                
+                // Update profile.conversations if it's missing this conversation
+                const currentConversations = Array.isArray(profile.conversations)
+                  ? profile.conversations
+                  : [];
+                if (!currentConversations.includes(convId)) {
+                  console.log(`📝 Found conversation ${convId} not in profile.conversations, updating profile...`);
+                  await supabase
+                    .from("profiles")
+                    .update({
+                      conversations: [...currentConversations, convId],
+                    })
+                    .eq("uid", profile.uid);
+                }
+              } catch (error) {
+                console.error("Error processing conversation:", error);
+              }
+            }
+          })
+        );
+      }
+    } catch (error) {
+      console.error("Error fetching all conversations:", error);
+    }
+
     setConversations(conversations);
   };
 

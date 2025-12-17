@@ -23,7 +23,7 @@ import ConversationItem from "../components/conversations/ConversationItem";
 const ConversationsScreen = () => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
   const { profile } = useProfile();
-  const { conversations, profiles } = useConversations();
+  const { conversations, profiles, updateMessageReadStatus } = useConversations();
   const {
     friendRequests,
     getFriendRequests,
@@ -90,13 +90,14 @@ const ConversationsScreen = () => {
 
   // Auto-play new messages
   useEffect(() => {
-    handleAutoPlay(conversations, autoplay, profile?.uid, audioPlayer);
+    handleAutoPlay(conversations, autoplay, profile?.uid, audioPlayer, updateMessageReadStatus);
   }, [
     conversations.map((c) => `${c.conversationId}:${c.messages.length}`).join(","),
     autoplay,
     profile?.uid,
     audioPlayer,
     handleAutoPlay,
+    updateMessageReadStatus,
   ]);
 
   // Initialize notification handlers

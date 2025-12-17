@@ -52,7 +52,6 @@ const RecordingPlayer = ({
   const hasMarkedAsRead = useRef(false);
   const hasToggledRead = useRef(false);
   const hasAutoPlayed = useRef(false);
-  const hasAttemptedAutoplayMarkRef = useRef(false);
   const { speakerMode, autoplay } = useAudioSettings();
 
   // Initialize player - will be set when file loads
@@ -235,51 +234,18 @@ const RecordingPlayer = ({
       // Reset the marked as read flag when switching to a different message
       hasMarkedAsRead.current = false;
       hasAutoPlayed.current = false;
-      hasAttemptedAutoplayMarkRef.current = false;
     } else if (currentUri === uri && autoPlay && !hasAutoPlayed.current && currentUserUid !== senderUid) {
       // Auto-play when this becomes the current message and autoplay is enabled
       // Note: autoPlay prop already includes the global autoplay setting check
       if (isReady && file) {
         // Audio is already loaded, play immediately
         hasAutoPlayed.current = true;
-
-        // Mark as read IMMEDIATELY before playing (fixes race condition)
-        if (!hasAttemptedAutoplayMarkRef.current) {
-          hasAttemptedAutoplayMarkRef.current = true;
-          console.log("🎯 Autoplay: Immediately marking as read:", messageId);
-          // Update local state immediately (synchronous)
-          hasMarkedAsRead.current = true;
-          setLocalIsRead(true);
-          if (onMarkAsRead) {
-            onMarkAsRead(messageId);
-          }
-          // Start database update (async, with promise to ensure it runs)
-          markMessageAsRead(messageId).catch((err) => {
-            console.error("Failed to mark message as read in DB:", err);
-          });
-        }
-
+        console.log("🎯 Autoplay: Starting playback (will mark as read when playing):", messageId);
         audioPlayer.play();
       } else if (!isLoading && !file) {
         // Audio needs to be loaded first, then play
         hasAutoPlayed.current = true;
-
-        // Mark as read IMMEDIATELY before loading and playing
-        if (!hasAttemptedAutoplayMarkRef.current) {
-          hasAttemptedAutoplayMarkRef.current = true;
-          console.log("🎯 Autoplay: Immediately marking as read:", messageId);
-          // Update local state immediately (synchronous)
-          hasMarkedAsRead.current = true;
-          setLocalIsRead(true);
-          if (onMarkAsRead) {
-            onMarkAsRead(messageId);
-          }
-          // Start database update (async, with promise to ensure it runs)
-          markMessageAsRead(messageId).catch((err) => {
-            console.error("Failed to mark message as read in DB:", err);
-          });
-        }
-
+        console.log("🎯 Autoplay: Starting playback (will mark as read when playing):", messageId);
         loadAudio(true); // Pass true to play after loading
       }
     }
@@ -299,18 +265,16 @@ const RecordingPlayer = ({
     // 2. Player is actually playing (playerStatus.playing)
     // 3. User is the recipient (not the sender)
     // 4. We haven't already marked it as read
-    // 5. We haven't already marked it during autoplay
-    // 6. Audio is ready
+    // 5. Audio is ready
     if (
       currentUri === uri &&
       playerStatus.playing &&
       currentUserUid !== senderUid &&
       !hasMarkedAsRead.current &&
-      !hasAttemptedAutoplayMarkRef.current &&
       isReady &&
       file
     ) {
-      console.log("🎵 Manual playback started - marking as read:", messageId);
+      console.log("🎵 Audio playing - marking as read:", messageId);
       handlePlayStart();
     }
   }, [playerStatus.playing, currentUri, uri, currentUserUid, senderUid, isReady, file, messageId]);
@@ -333,15 +297,9 @@ const RecordingPlayer = ({
 
         // Check if finished
         if (currentTime >= totalDuration && totalDuration > 0) {
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/f5e603aa-4ab7-41d0-b1fe-b8ca210c432d', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'RecordingPlayer.tsx:292', message: 'Playback finished - pausing and seeking to 0', data: { uri, currentTime, totalDuration, isReady, hasFile: !!file }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run3', hypothesisId: 'F' }) }).catch(() => { });
-          // #endregion
           setPosition(0);
           audioPlayer.pause();
           audioPlayer.seekTo(0);
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/f5e603aa-4ab7-41d0-b1fe-b8ca210c432d', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'RecordingPlayer.tsx:297', message: 'After pause and seekTo - player state', data: { uri, isReady, hasFile: !!file }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run3', hypothesisId: 'F' }) }).catch(() => { });
-          // #endregion
           // Notify parent that playback finished (for autoplay queue)
           if (onPlaybackFinished && currentUri === uri) {
             onPlaybackFinished();
@@ -365,16 +323,10 @@ const RecordingPlayer = ({
     // Configure audio session for playback before playing (especially important on iOS)
     if (Platform.OS === 'ios') {
       try {
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/f5e603aa-4ab7-41d0-b1fe-b8ca210c432d', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'RecordingPlayer.tsx:319', message: 'Setting audio mode to allowsRecording:false for playback', data: { uri }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run2', hypothesisId: 'B,E' }) }).catch(() => { });
-        // #endregion
         await setAudioModeAsync({
           playsInSilentMode: true,
           allowsRecording: false, // We're playing, not recording
         });
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/f5e603aa-4ab7-41d0-b1fe-b8ca210c432d', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'RecordingPlayer.tsx:325', message: 'Audio mode set to allowsRecording:false - this may block future recording', data: { uri }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run2', hypothesisId: 'B,E' }) }).catch(() => { });
-        // #endregion
         // Note: expo-audio doesn't have direct speaker routing support
         // For full speaker routing, you may need to use expo-av or a native module
         // This is a placeholder for future implementation
@@ -405,20 +357,11 @@ const RecordingPlayer = ({
       }
       // If audio is already loaded and ready, play immediately
       if (isReady && file) {
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/f5e603aa-4ab7-41d0-b1fe-b8ca210c432d', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'RecordingPlayer.tsx:359', message: 'Switching to different audio - about to play', data: { uri, isReady, hasFile: !!file, currentPosition: position }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run3', hypothesisId: 'F' }) }).catch(() => { });
-        // #endregion
         // Small delay to ensure player is ready (especially on iOS)
         await new Promise(resolve => setTimeout(resolve, 100));
         try {
           audioPlayer.play();
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/f5e603aa-4ab7-41d0-b1fe-b8ca210c432d', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'RecordingPlayer.tsx:365', message: 'After play() call when switching audio', data: { uri }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run3', hypothesisId: 'F' }) }).catch(() => { });
-          // #endregion
         } catch (error) {
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/f5e603aa-4ab7-41d0-b1fe-b8ca210c432d', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'RecordingPlayer.tsx:368', message: 'Error playing when switching audio', data: { uri, errorMessage: (error as Error)?.message || String(error) }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run3', hypothesisId: 'F' }) }).catch(() => { });
-          // #endregion
           console.error("Error playing audio when switching:", error);
         }
         // Note: Marking as read is now handled by the useEffect that watches playerStatus.playing
@@ -440,31 +383,15 @@ const RecordingPlayer = ({
 
     // Toggle play/pause
     if (playerStatus.playing) {
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/f5e603aa-4ab7-41d0-b1fe-b8ca210c432d', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'RecordingPlayer.tsx:380', message: 'Pausing playback', data: { uri, isReady, hasFile: !!file, currentPosition: position }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run3', hypothesisId: 'F' }) }).catch(() => { });
-      // #endregion
       audioPlayer.pause();
     } else {
       if (isReady && file) {
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/f5e603aa-4ab7-41d0-b1fe-b8ca210c432d', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'RecordingPlayer.tsx:386', message: 'About to call audioPlayer.play() - checking state', data: { uri, isReady, hasFile: !!file, currentPosition: position, playerStatusPlaying: playerStatus.playing, duration: playerStatus.duration }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run3', hypothesisId: 'F' }) }).catch(() => { });
-        // #endregion
         try {
           audioPlayer.play();
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/f5e603aa-4ab7-41d0-b1fe-b8ca210c432d', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'RecordingPlayer.tsx:391', message: 'After audioPlayer.play() call - success', data: { uri }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run3', hypothesisId: 'F' }) }).catch(() => { });
-          // #endregion
           // Note: Marking as read is now handled by the useEffect that watches playerStatus.playing
         } catch (error) {
-          // #region agent log
-          fetch('http://127.0.0.1:7242/ingest/f5e603aa-4ab7-41d0-b1fe-b8ca210c432d', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'RecordingPlayer.tsx:399', message: 'Error calling audioPlayer.play()', data: { uri, errorMessage: (error as Error)?.message || String(error), errorString: String(error) }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run3', hypothesisId: 'F' }) }).catch(() => { });
-          // #endregion
           console.error("Error playing audio:", error);
         }
-      } else {
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/f5e603aa-4ab7-41d0-b1fe-b8ca210c432d', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'RecordingPlayer.tsx:404', message: 'Cannot play - audio not ready', data: { uri, isReady, hasFile: !!file, isLoading }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run3', hypothesisId: 'F' }) }).catch(() => { });
-        // #endregion
       }
     }
   };
