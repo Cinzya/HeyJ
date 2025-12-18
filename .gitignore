@@ -51,4 +51,4 @@ playwright-report/
 playwright/.cache/
 
 # git files
-.package-lock.json
+package-lock.json
