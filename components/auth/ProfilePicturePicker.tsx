@@ -1,7 +1,7 @@
 import { View, Text, TouchableOpacity, Image } from "react-native";
 import { AntDesign } from "@expo/vector-icons";
 import { ImagePickerAsset } from "expo-image-picker";
-import { styles } from "../../styles/SignupScreen.styles";
+import { styles } from "../../styles/screens/SignupScreen.styles";
 
 interface ProfilePicturePickerProps {
   profileImage: ImagePickerAsset | null;

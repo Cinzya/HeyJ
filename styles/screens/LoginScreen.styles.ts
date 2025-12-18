@@ -5,7 +5,7 @@ import {
   typography,
   borderRadius,
   buttonHeight,
-} from "./theme";
+} from "../theme";
 
 export const styles = StyleSheet.create({
   container: {

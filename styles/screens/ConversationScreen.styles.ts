@@ -1,5 +1,5 @@
 import { StyleSheet, Platform } from "react-native";
-import { spacing, colors } from "./theme";
+import { spacing, colors } from "../theme";
 
 export const createStyles = (
   buttonWidth: number,

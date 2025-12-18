@@ -33,7 +33,7 @@ import ProfilePicturePicker from "../components/auth/ProfilePicturePicker";
 
 // Types & Styles
 import { SignupScreenProps } from "../types/navigation";
-import { styles } from "../styles/SignupScreen.styles";
+import { styles } from "../styles/screens/SignupScreen.styles";
 
 const SignupScreen = ({ navigation }: SignupScreenProps) => {
   const [fullName, setFullName] = useState("");

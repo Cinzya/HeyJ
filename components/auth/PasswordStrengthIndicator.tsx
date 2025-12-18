@@ -1,6 +1,6 @@
 import { View, Text } from "react-native";
 import RequirementItem from "./RequirementItem";
-import { styles } from "../../styles/SignupScreen.styles";
+import { styles } from "../../styles/screens/SignupScreen.styles";
 
 interface PasswordStrength {
   score: number;

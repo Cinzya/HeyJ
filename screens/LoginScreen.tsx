@@ -19,7 +19,7 @@ import { signInWithEmail } from "../utilities/AuthHelper";
 
 // Types & Styles
 import { LoginScreenProps } from "../types/navigation";
-import { styles } from "../styles/LoginScreen.styles";
+import { styles } from "../styles/screens/LoginScreen.styles";
 
 
 const LoginScreen = ({ navigation }: LoginScreenProps) => {

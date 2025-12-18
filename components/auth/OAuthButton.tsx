@@ -1,6 +1,7 @@
 import * as React from "react";
-import { TouchableOpacity, Image, StyleSheet } from "react-native";
+import { TouchableOpacity, Image } from "react-native";
 import { signInWithApple, signInWithGoogle } from "../../utilities/AuthHelper";
+import { styles } from "../../styles/components/auth/OAuthButton.styles";
 
 type OAuthButtonType = "google" | "apple" | "facebook";
 
@@ -33,19 +34,3 @@ const OAuthButton = ({ type }: OAuthButtonProps) => {
 };
 
 export default OAuthButton;
-
-const styles = StyleSheet.create({
-  button: {
-    width: 100,
-    height: 100,
-    margin: 15,
-    justifyContent: "center",
-    borderRadius: 15,
-    backgroundColor: "#F2F2F2",
-  },
-  logo: {
-    width: 75,
-    height: 75,
-    alignSelf: "center",
-  },
-});

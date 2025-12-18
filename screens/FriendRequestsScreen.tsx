@@ -22,7 +22,7 @@ import FriendRequest from "../objects/FriendRequest";
 import { FriendRequestsScreenProps } from "../types/navigation";
 
 // Styles
-import { styles } from "../styles/FriendRequestsScreen.styles";
+import { styles } from "../styles/screens/FriendRequestsScreen.styles";
 
 const FriendRequestsScreen = ({ navigation }: FriendRequestsScreenProps) => {
   const { profile } = useProfile();

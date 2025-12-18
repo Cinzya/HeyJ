@@ -1,9 +1,10 @@
 import React, { createContext, useContext, useRef, ReactNode } from "react";
-import { View, Animated, StyleSheet, ViewStyle } from "react-native";
+import { View, Animated, ViewStyle } from "react-native";
 import {
   SharedElementTransition,
   SharedElementNode,
 } from "react-native-shared-element";
+import { styles } from "../styles/utilities/SharedElementProvider.styles";
 
 interface SharedElementContextProps {
   startAncestor: SharedElementNode | null;
@@ -70,15 +71,5 @@ const useSharedElement = () => {
   }
   return context;
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 1000,
-  },
-});
 
 export { SharedElementProvider, useSharedElement };

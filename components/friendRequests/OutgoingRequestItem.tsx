@@ -1,7 +1,7 @@
 import { View, Text, TouchableOpacity, Image } from "react-native";
 import FriendRequest from "../../objects/FriendRequest";
 import Profile from "../../objects/Profile";
-import { styles } from "../../styles/FriendRequestsScreen.styles";
+import { styles } from "../../styles/screens/FriendRequestsScreen.styles";
 
 interface OutgoingRequestItemProps {
   request: FriendRequest;

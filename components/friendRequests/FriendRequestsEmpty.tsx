@@ -1,6 +1,6 @@
 import { View, Text } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { styles } from "../../styles/FriendRequestsScreen.styles";
+import { styles } from "../../styles/screens/FriendRequestsScreen.styles";
 
 const FriendRequestsEmpty = () => {
   return (

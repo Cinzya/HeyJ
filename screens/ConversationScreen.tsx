@@ -29,7 +29,7 @@ import Message from "../objects/Message";
 import { ConversationScreenProps, RootStackParamList } from "../types/navigation";
 
 // Styles
-import { createStyles as createConversationScreenStyles } from "../styles/ConversationScreen.styles";
+import { createStyles as createConversationScreenStyles } from "../styles/screens/ConversationScreen.styles";
 import { colors } from "../styles/theme";
 
 const ConversationScreen = ({ route }: ConversationScreenProps) => {

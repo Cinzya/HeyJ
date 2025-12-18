@@ -1,7 +1,7 @@
 import { View, Text, TouchableOpacity } from "react-native";
 import Conversation from "../../objects/Conversation";
 import Profile from "../../objects/Profile";
-import { styles } from "../../styles/ConversationsScreen.styles";
+import { styles } from "../../styles/screens/ConversationsScreen.styles";
 import { Entypo, FontAwesome } from "@expo/vector-icons";
 import { isBefore } from "date-fns";
 import { formatDate } from "../../utilities/dateUtils";

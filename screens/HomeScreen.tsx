@@ -28,7 +28,7 @@ import ConversationsScreen from "./ConversationsScreen";
 
 // Types & Styles
 import { RootStackParamList } from "../types/navigation";
-import { createStyles as createHomeScreenStyles } from "../styles/HomeScreen.styles";
+import { createStyles as createHomeScreenStyles } from "../styles/screens/HomeScreen.styles";
 
 const HomeScreen = () => {
   logAgentEvent({

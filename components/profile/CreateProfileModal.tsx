@@ -4,13 +4,11 @@ import {
   View,
   Text,
   Image,
-  StyleSheet,
   Modal,
   TextInput,
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
-  Dimensions,
   Alert,
 } from "react-native";
 
@@ -29,6 +27,9 @@ import { useProfile } from "../../utilities/ProfileProvider";
 
 // Objects
 import Profile from "../../objects/Profile";
+
+// Styles
+import { styles } from "../../styles/components/profile/CreateProfileModal.styles";
 
 const CreateProfileModal = () => {
   const { appReady, user, profile, saveProfile, getProfile } = useProfile();
@@ -205,88 +206,3 @@ const CreateProfileModal = () => {
 };
 
 export default CreateProfileModal;
-
-const styles = StyleSheet.create({
-  modal: {
-    width: "100%",
-    height: "100%",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  modalSheet: {
-    width: Dimensions.get("screen").width * 0.8,
-    height: Dimensions.get("screen").height * 0.5,
-    backgroundColor: "#F9F9F9",
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 15,
-    borderColor: "#A2A2A2",
-    borderWidth: 0.5,
-    zIndex: 1000,
-    shadowColor: "#A2A2A2",
-    shadowOpacity: 0.5,
-    shadowOffset: { width: 3, height: 3 },
-  },
-  modalTitle: {
-    top: 15,
-    alignSelf: "center",
-    position: "absolute",
-    color: "#515151",
-    fontSize: 25,
-    fontWeight: "600",
-  },
-  image: {
-    width: 150,
-    height: 150,
-    borderRadius: 75,
-    borderColor: "#000",
-    borderWidth: 0.5,
-    marginBottom: 25,
-  },
-  plusButton: {
-    width: 35,
-    height: 35,
-    backgroundColor: "#000",
-    borderColor: "#FFF",
-    borderRadius: 50,
-    borderWidth: 1,
-    position: "absolute",
-    alignItems: "center",
-    justifyContent: "center",
-    bottom: 30,
-    right: 10,
-  },
-  textInputWrapper: {
-    flexDirection: "row",
-    alignSelf: "flex-start",
-    marginLeft: 15,
-    marginBottom: 10,
-  },
-  labelText: {
-    fontSize: 20,
-    fontWeight: "600",
-  },
-  textInputLabel: {
-    fontSize: 20,
-    fontWeight: "600",
-  },
-  fieldTextInput: {
-    width: 200,
-    fontSize: 16,
-    alignSelf: "center",
-    borderBottomWidth: 1,
-    borderBottomColor: "#515151",
-  },
-  saveButton: {
-    width: "50%",
-    height: 50,
-    borderRadius: 15,
-    borderColor: "#A2A2A2",
-    borderWidth: 0.5,
-    backgroundColor: "#C2C2C2",
-    bottom: 15,
-    position: "absolute",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-});

@@ -1,5 +1,5 @@
 import { StyleSheet, Dimensions } from "react-native";
-import { colors, spacing, typography, borderRadius, buttonHeight } from "./theme";
+import { colors, spacing, typography, borderRadius, buttonHeight } from "../theme";
 
 const { width } = Dimensions.get("window");
 

@@ -1,5 +1,5 @@
 import { View, FlatList } from "react-native";
-import { styles } from "../styles/ConversationsScreen.styles";
+import { styles } from "../styles/screens/ConversationsScreen.styles";
 import { useProfile } from "../utilities/ProfileProvider";
 import { useConversations } from "../utilities/ConversationsProvider";
 import { useFriends } from "../utilities/FriendsProvider";
