@@ -25,16 +25,16 @@ export async function testPushNotifications(
     }
 
     // 2. Check if recipient has subscription ID
-    const { data: toProfile } = await supabase
-      .from('profiles')
-      .select('oneSignalPlayerId')
+    const { data: toTokens } = await supabase
+      .from('push_tokens')
+      .select('tokens')
       .eq('uid', toUserId)
       .single();
 
-    console.log('📋 Recipient OneSignal Player ID:', toProfile?.oneSignalPlayerId);
+    console.log('📋 Recipient Push Tokens:', toTokens?.tokens);
 
-    if (!toProfile?.oneSignalPlayerId) {
-      console.error('❌ Recipient does not have OneSignal subscription ID');
+    if (!toTokens?.tokens || toTokens.tokens.length === 0) {
+      console.error('❌ Recipient does not have any push tokens');
       return;
     }
 
