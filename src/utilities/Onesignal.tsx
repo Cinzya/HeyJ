@@ -8,7 +8,19 @@ import { handleError } from './errorHandler';
 const ONESIGNAL_APP_ID = Constants.expoConfig?.extra?.oneSignalAppId ||
                          process.env.EXPO_PUBLIC_ONESIGNAL_APP_ID;
 
-const ONESIGNAL_REST_API_KEY = process.env.ONESIGNAL_REST_API_KEY;
+const ONESIGNAL_REST_API_KEY = Constants.expoConfig?.extra?.oneSignalRestApiKey ||
+                                process.env.ONESIGNAL_REST_API_KEY;
+
+// Debug logging
+console.log('🔍 OneSignal Environment Check:', {
+  fromExpoConfig: Constants.expoConfig?.extra?.oneSignalAppId,
+  fromProcessEnv: process.env.EXPO_PUBLIC_ONESIGNAL_APP_ID,
+  finalAppId: ONESIGNAL_APP_ID,
+  fromExpoConfigRestKey: !!Constants.expoConfig?.extra?.oneSignalRestApiKey,
+  fromProcessEnvRestKey: !!process.env.ONESIGNAL_REST_API_KEY,
+  hasRestApiKey: !!ONESIGNAL_REST_API_KEY,
+  platform: Platform.OS,
+});
 
 /**
  * Initialize OneSignal SDK and register for push notifications
@@ -16,7 +28,19 @@ const ONESIGNAL_REST_API_KEY = process.env.ONESIGNAL_REST_API_KEY;
  */
 export async function initializeOneSignal(userId: string): Promise<void> {
   try {
+    // Skip OneSignal SDK initialization on web (only mobile needs SDK)
+    // Web can still send notifications via REST API in sendPushNotification()
+    if (Platform.OS === 'web') {
+      console.log('🌐 Web platform detected - skipping OneSignal SDK initialization');
+      console.log('✅ Notifications can still be sent via REST API');
+      return;
+    }
+
     if (!ONESIGNAL_APP_ID) {
+      console.error('❌ OneSignal App ID not configured:', {
+        expoConfigExtra: Constants.expoConfig?.extra,
+        processEnvKeys: Object.keys(process.env).filter(k => k.includes('ONESIGNAL')),
+      });
       console.warn('OneSignal App ID not configured - push notifications disabled');
       return;
     }
@@ -34,9 +58,17 @@ export async function initializeOneSignal(userId: string): Promise<void> {
     // Set external user ID (use Supabase user ID)
     OneSignal.login(userId);
 
-    // Request notification permissions (iOS)
+    // Request notification permissions
     if (Platform.OS === 'ios') {
       await OneSignal.Notifications.requestPermission(true);
+    } else if (Platform.OS === 'android') {
+      const permission = await OneSignal.Notifications.getPermissionAsync();
+      console.log('📱 Android notification permission status:', permission);
+
+      if (!permission) {
+        console.log('📱 Requesting Android notification permission...');
+        await OneSignal.Notifications.requestPermission(true);
+      }
     }
 
     // Get player ID and save to profile
@@ -59,16 +91,21 @@ export async function registerForPushNotificationsAsync(userId: string): Promise
     if (subscriptionId) {
       console.log('📱 OneSignal Subscription ID:', subscriptionId);
 
-      // Save subscription ID to user's profile
+      // Save subscription ID to push_tokens table
       const { error } = await supabase
-        .from('profiles')
-        .update({ oneSignalPlayerId: subscriptionId })
-        .eq('uid', userId);
+        .from('push_tokens')
+        .upsert({
+          uid: userId,
+          tokens: [subscriptionId],
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'uid'
+        });
 
       if (error) {
         handleError(error, 'registerForPushNotificationsAsync');
       } else {
-        console.log('✅ Subscription ID saved to profile');
+        console.log('✅ Subscription ID saved to push_tokens');
       }
     } else {
       console.log('⚠️ No OneSignal Subscription ID available yet, listening for changes...');
@@ -80,14 +117,19 @@ export async function registerForPushNotificationsAsync(userId: string): Promise
           console.log('📱 OneSignal Subscription ID received:', newSubscriptionId);
 
           const { error } = await supabase
-            .from('profiles')
-            .update({ oneSignalPlayerId: newSubscriptionId })
-            .eq('uid', userId);
+            .from('push_tokens')
+            .upsert({
+              uid: userId,
+              tokens: [newSubscriptionId],
+              updated_at: new Date().toISOString()
+            }, {
+              onConflict: 'uid'
+            });
 
           if (error) {
             handleError(error, 'registerForPushNotificationsAsync - subscription change');
           } else {
-            console.log('✅ Subscription ID saved to profile');
+            console.log('✅ Subscription ID saved to push_tokens');
           }
         }
       });
@@ -105,16 +147,16 @@ export const removeToken = async (uid: string): Promise<void> => {
     // Clear external user ID
     OneSignal.logout();
 
-    // Remove subscription ID from profile
+    // Remove subscription ID from push_tokens
     const { error } = await supabase
-      .from('profiles')
-      .update({ oneSignalPlayerId: null })
+      .from('push_tokens')
+      .delete()
       .eq('uid', uid);
 
     if (error) {
       handleError(error, 'removeToken');
     } else {
-      console.log('✅ OneSignal subscription ID removed from profile');
+      console.log('✅ OneSignal subscription ID removed from push_tokens');
     }
   } catch (error) {
     handleError(error, 'removeToken');

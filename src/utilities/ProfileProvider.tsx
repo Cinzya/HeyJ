@@ -162,9 +162,15 @@ const ProfileProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Initialize OneSignal when user is authenticated
     if (user?.id) {
-      initializeOneSignal(user.id).catch((error) => {
-        handleError(error, 'ProfileProvider - OneSignal initialization');
-      });
+      console.log('🔔 Attempting OneSignal initialization for user:', user.id);
+      initializeOneSignal(user.id)
+        .then(() => {
+          console.log('✅ OneSignal initialization complete');
+        })
+        .catch((error) => {
+          console.error('❌ OneSignal initialization failed:', error);
+          handleError(error, 'ProfileProvider - OneSignal initialization');
+        });
     }
   }, [user]);
 
