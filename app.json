@@ -74,9 +74,7 @@
     "extra": {
       "eas": {
         "projectId": "425b4502-a4b9-4fe6-a2ea-ca4129daa0dc"
-      },
-      "oneSignalAppId": "1d79c718-998c-49d0-89cb-37c5ea140309",
-      "oneSignalRestApiKey": "os_v2_app_dv44ogezrre5bcolg7c6ufadbhwkfoz2n2yuy65jzj7jjsmxdjmkurtdtjngab2xmhdqpwtvy6oxcwizh2o7w6szfdedgfdjcrisw2a"
+      }
     },
     "jsEngine": "hermes"
   }

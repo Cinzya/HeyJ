@@ -5,20 +5,16 @@ import { supabase } from './Supabase';
 import { handleError } from './errorHandler';
 
 // Get OneSignal App ID from environment
-const ONESIGNAL_APP_ID = Constants.expoConfig?.extra?.oneSignalAppId ||
-                         process.env.EXPO_PUBLIC_ONESIGNAL_APP_ID;
+const ONESIGNAL_APP_ID = process.env.EXPO_PUBLIC_ONESIGNAL_APP_ID;
 
-const ONESIGNAL_REST_API_KEY = Constants.expoConfig?.extra?.oneSignalRestApiKey ||
-                                process.env.ONESIGNAL_REST_API_KEY;
+const ONESIGNAL_REST_API_KEY = process.env.EXPO_PUBLIC_ONESIGNAL_REST_API_KEY;
 
 // Debug logging
 console.log('🔍 OneSignal Environment Check:', {
-  fromExpoConfig: Constants.expoConfig?.extra?.oneSignalAppId,
-  fromProcessEnv: process.env.EXPO_PUBLIC_ONESIGNAL_APP_ID,
-  finalAppId: ONESIGNAL_APP_ID,
-  fromExpoConfigRestKey: !!Constants.expoConfig?.extra?.oneSignalRestApiKey,
-  fromProcessEnvRestKey: !!process.env.ONESIGNAL_REST_API_KEY,
+  appId: ONESIGNAL_APP_ID,
+  hasAppId: !!ONESIGNAL_APP_ID,
   hasRestApiKey: !!ONESIGNAL_REST_API_KEY,
+  restApiKeyPrefix: ONESIGNAL_REST_API_KEY?.substring(0, 15),
   platform: Platform.OS,
 });
 

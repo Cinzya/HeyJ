@@ -6,7 +6,8 @@
   "scripts": {
     "start": "expo start --tunnel",
     "android": "expo run:android",
-    "ios": "expo run:ios",
+    "ios": "./scripts/run-ios.sh",
+    "ios:device": "expo run:ios",
     "web": "expo start --web",
     "test": "jest",
     "test:watch": "jest --watch",
