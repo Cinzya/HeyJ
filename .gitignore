@@ -47,6 +47,9 @@ web-build/
 # Native Code
 ios/
 android/
+*.xcworkspace
+*.xcuserstate
+*.apk
 
 # Playwright
 test-results/
