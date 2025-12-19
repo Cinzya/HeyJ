@@ -17,7 +17,8 @@
     "db:clear": "ts-node scripts/clear-db.ts",
     "prebuild": "cp -v android/local.properties android/app/local.properties || true",
     "build:web": "npx expo export -p web",
-    "start:web": "npx serve dist -l ${PORT:-3000}"
+    "start:web": "serve -s dist -l ${PORT:-3000} --listen tcp://0.0.0.0:${PORT:-3000}",
+    "start:webapp": "serve -s dist -l ${PORT:-3000} --listen tcp://0.0.0.0:${PORT:-3000}"
   },
   "dependencies": {
     "@expo/react-native-action-sheet": "^4.0.1",
