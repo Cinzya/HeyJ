@@ -15,7 +15,9 @@
     "test:e2e:debug": "playwright test --debug",
     "test:e2e:headed": "playwright test --headed",
     "db:clear": "ts-node scripts/clear-db.ts",
-    "prebuild": "cp -v android/local.properties android/app/local.properties || true"
+    "prebuild": "cp -v android/local.properties android/app/local.properties || true",
+    "build:web": "expo export -p web",
+    "start:web": "serve -s dist -l $PORT"
   },
   "dependencies": {
     "@expo/react-native-action-sheet": "^4.0.1",
