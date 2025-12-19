@@ -58,3 +58,5 @@ playwright/.cache/
 
 # git files
 package-lock.json
+# Local Netlify folder
+.netlify
