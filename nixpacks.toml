@@ -1,0 +1,14 @@
+[phases.setup]
+cmds = [
+  "corepack enable",
+  "corepack prepare yarn@1.22.22 --activate"
+]
+
+[phases.install]
+cmds = ["yarn install --frozen-lockfile"]
+
+[phases.build]
+cmds = ["yarn build:web"]
+
+[start]
+cmd = "yarn start:web"
